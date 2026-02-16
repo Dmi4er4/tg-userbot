@@ -14,16 +14,25 @@ export function buildVoiceFileName(message: Api.Message): string {
     return `voice-${peerId}-${String(message.id)}-${Date.now()}.ogg`;
 }
 
-export async function saveVoiceFromMessage(client: TelegramClient, message: Api.Message): Promise<string> {
+async function saveMediaFromMessage(client: TelegramClient, message: Api.Message, fileName: string): Promise<string> {
     await ensureVoicesDir();
-    const fileName = buildVoiceFileName(message);
     const destPath = join(voicesDir, fileName);
     const data = await client.downloadMedia(message, {});
-    if (!data) throw new Error("Failed to download voice media");
+    if (!data) throw new Error("Failed to download media");
     if (data instanceof Uint8Array) {
         await writeFile(destPath, Buffer.from(data));
     } else {
-        throw new Error("Unexpected media type returned while downloading voice message");
+        throw new Error("Unexpected media type returned while downloading media");
     }
     return destPath;
+}
+
+export async function saveVoiceFromMessage(client: TelegramClient, message: Api.Message): Promise<string> {
+    return saveMediaFromMessage(client, message, buildVoiceFileName(message));
+}
+
+export async function saveVideoNoteFromMessage(client: TelegramClient, message: Api.Message): Promise<string> {
+    const peerId = getPeerLabelFromMessage(message);
+    const fileName = `videonote-${peerId}-${String(message.id)}-${Date.now()}.mp4`;
+    return saveMediaFromMessage(client, message, fileName);
 }

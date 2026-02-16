@@ -4,13 +4,13 @@ Telegram userbot that auto-transcribes voice messages and provides AI-powered co
 
 ## Features
 
-- Auto-transcribes voice messages in private chats (and configurable group chats)
-- `/convert` — transcribe a replied voice message
-- `/ai {prompt}` — ask AI a question (optionally with a replied voice as context)
-- `/tldr` — summarize a replied voice message
-- `/summary {count} [prompt]` — summarize the last N messages in a chat
-- `/g {query}` — Google search
-- `/n` — dismiss/delete the bot's last message
+- **Auto-transcription** — automatically transcribes voice messages in private chats and configurable group chats
+- `/convert` — transcribe a replied voice message on demand
+- `/ai {prompt}` — ask AI a question; supports reply to text or voice for additional context
+- `/tldr` — summarize a replied message (text or voice)
+- `/summary {count} [prompt]` — summarize the last N messages in a group chat (supports forum topics)
+- `/g {query}` — generate a Google search link; can combine query with replied message text
+- `/n [text]` — edit a message to append a disclaimer (edits replied message or the command message itself)
 
 ## Setup
 
@@ -46,6 +46,11 @@ On first login the bot will prompt for your phone number and auth code. After lo
 ```bash
 cp .env.example .env
 # Fill in .env with your credentials
+
+# First run — interactive login (prompts for phone code):
+docker compose run --rm tg-userbot
+
+# After saving TG_SESSION to .env, run in background:
 docker compose up -d
 ```
 
@@ -64,6 +69,7 @@ docker compose up -d
 | `GOOGLE_TEXT_MODEL` | No | Model for text AI commands (default: same as `GOOGLE_MODEL`) |
 | `AUTO_TRANSCRIBE_PEER_IDS` | No | Comma-separated peer IDs to auto-transcribe in (besides private chats) |
 | `TRANSCRIBE_DISABLED_PEER_IDS` | No | Comma-separated peer IDs where auto-transcription is disabled |
+| `GOOGLE_API_BASE_URL` | No | Custom base URL for Google API (for proxying in unsupported regions) |
 
 ## Architecture
 

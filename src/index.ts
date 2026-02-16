@@ -25,14 +25,41 @@ async function main() {
 		connectionRetries: 5,
 	});
 
+	let phoneAttempted = false;
+	let codeAttempted = false;
+	let passwordAttempted = false;
+
 	await client.start({
-		phoneNumber: async () =>
-			env.TG_PHONE_NUMBER ?? (await prompt("Phone number: ")),
-		password: async () =>
-			env.TG_PASSWORD ?? (await prompt("2FA password (if any): ")),
-		phoneCode: async () =>
-			env.TG_PHONE_CODE ?? (await prompt("Code you received: ")),
-		onError: (err) => console.error("Login error:", err),
+		phoneNumber: async () => {
+			if (!phoneAttempted && env.TG_PHONE_NUMBER) {
+				phoneAttempted = true;
+				return env.TG_PHONE_NUMBER;
+			}
+			return await prompt("Phone number (international format, e.g. +79001234567): ");
+		},
+		password: async () => {
+			if (!passwordAttempted && env.TG_PASSWORD) {
+				passwordAttempted = true;
+				return env.TG_PASSWORD;
+			}
+			return await prompt("2FA password: ");
+		},
+		phoneCode: async () => {
+			if (!codeAttempted && env.TG_PHONE_CODE) {
+				codeAttempted = true;
+				return env.TG_PHONE_CODE;
+			}
+			return await prompt("Code you received: ");
+		},
+		onError: async (err) => {
+			if (err instanceof Error && "seconds" in err) {
+				const seconds = (err as { seconds: number }).seconds;
+				console.error(`FloodWait: waiting ${seconds}s before retry...`);
+				await new Promise((r) => setTimeout(r, seconds * 1000));
+				return;
+			}
+			console.error("Login error:", err);
+		},
 	});
 
 	console.log("Userbot started");
@@ -43,19 +70,23 @@ async function main() {
 	}
 
 	const googleTextModel = env.GOOGLE_TEXT_MODEL ?? env.GOOGLE_MODEL;
+	console.log(`Transcriber model: ${env.GOOGLE_MODEL}, AI model: ${googleTextModel}`);
 
 	const transcriber = new GoogleGenAiTranscriber({
 		apiKey: env.GOOGLE_API_KEY,
 		model: env.GOOGLE_MODEL,
+		baseUrl: env.GOOGLE_API_BASE_URL,
 	});
-	const ai = new GoogleGenAi({ apiKey: env.GOOGLE_API_KEY, model: googleTextModel });
+	const ai = new GoogleGenAi({ apiKey: env.GOOGLE_API_KEY, model: googleTextModel, baseUrl: env.GOOGLE_API_BASE_URL });
 	const handlers = createHandlers({
 		transcriber,
 		ai,
 		autoTranscribePeerIds: env.AUTO_TRANSCRIBE_PEER_IDS,
 		transcribeDisabledPeerIds: env.TRANSCRIBE_DISABLED_PEER_IDS,
 	});
-	const bot = new TgUserbot(client, handlers);
+	const bot = new TgUserbot(client, handlers, {
+		deletedTrackerEnabled: env.DELETED_TRACKER_ENABLED,
+	});
 	await bot.start();
 }
 

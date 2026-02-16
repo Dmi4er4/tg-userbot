@@ -1,11 +1,12 @@
 import { createUserContent, GoogleGenAI } from "@google/genai";
-import pRetry from "p-retry";
+import pRetry, { AbortError } from "p-retry";
 import type { FailedAttemptError } from "p-retry";
 import type { AI, GenerateOptions } from "@/domain/ai";
 
 export type GoogleAiConfig = {
     apiKey: string;
     model?: string;
+    baseUrl?: string;
 };
 
 export class GoogleGenAi implements AI {
@@ -16,7 +17,10 @@ export class GoogleGenAi implements AI {
         if (!config.apiKey) {
             throw new Error("GOOGLE_API_KEY is required for AI generation");
         }
-        this.client = new GoogleGenAI({ apiKey: config.apiKey });
+        this.client = new GoogleGenAI({
+            apiKey: config.apiKey,
+            ...(config.baseUrl && { httpOptions: { baseUrl: config.baseUrl } }),
+        });
         this.model = config.model ?? "gemini-2.5-flash";
     }
 
@@ -28,7 +32,15 @@ export class GoogleGenAi implements AI {
         
         const result = await pRetry(
             async () => {
-                return await this.client.models.generateContent({ model: this.model, contents });
+                try {
+                    return await this.client.models.generateContent({ model: this.model, contents });
+                } catch (err) {
+                    // Don't retry rate limit errors — let withRateLimitRetry handle them
+                    if (err instanceof Error && "status" in err && (err as { status: number }).status === 429) {
+                        throw new AbortError(err.message);
+                    }
+                    throw err;
+                }
             },
             {
                 retries: 3,

@@ -15,10 +15,12 @@ export const env = createEnv({
 		TG_PASSWORD: z.string().optional(),
 		TG_PHONE_CODE: z.string().optional(),
 		GOOGLE_API_KEY: z.string().min(1),
+		GOOGLE_API_BASE_URL: z.string().optional(),
 		GOOGLE_MODEL: z.string().optional().default("gemini-2.5-flash"),
 		GOOGLE_TEXT_MODEL: z.string().optional(),
 		AUTO_TRANSCRIBE_PEER_IDS: commaSeparatedSet,
 		TRANSCRIBE_DISABLED_PEER_IDS: commaSeparatedSet,
+		DELETED_TRACKER_ENABLED: z.coerce.boolean().optional().default(true),
 	},
 	runtimeEnv: process.env,
 });

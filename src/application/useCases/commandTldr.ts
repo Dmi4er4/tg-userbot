@@ -1,9 +1,10 @@
 import type { Api, TelegramClient } from "telegram";
 import type { AI } from "@/domain/ai";
 import type { Transcriber } from "@/domain/transcriber";
+import { withRateLimitRetry } from "@/application/withRateLimitRetry";
 import { MESSAGES } from "@/messages";
-import { getRepliedMessage, isVoiceMessage, replyTo } from "@/telegram/utils";
-import { saveVoiceFromMessage } from "@/telegram/voice";
+import { getRepliedMessage, isVideoNote, isVoiceMessage, replyTo } from "@/telegram/utils";
+import { saveVideoNoteFromMessage, saveVoiceFromMessage } from "@/telegram/voice";
 
 const buildTldrPrompt = (text: string): string => {
 	return `Твоя задача — преобразовать большой объём текста в краткие, но информативные пункты.
@@ -76,14 +77,28 @@ export async function commandTldr(
 
 		let textToProcess: string;
 
-		// Handle voice messages
-		if (isVoiceMessage(replied)) {
-			const filePath = await saveVoiceFromMessage(client, replied);
-			textToProcess = (
-				await deps.transcriber.transcribeOggFile(filePath, {
-					language: "Russian",
-				})
-			).trim();
+		// Handle voice messages and video notes
+		if (isVoiceMessage(replied) || isVideoNote(replied)) {
+			let filePath: string;
+			if (isVideoNote(replied)) {
+				filePath = await saveVideoNoteFromMessage(client, replied);
+				textToProcess = (
+					await withRateLimitRetry(ctx, () =>
+						deps.transcriber.transcribeFile(filePath, "video/mp4", {
+							language: "Russian",
+						}),
+					)
+				).trim();
+			} else {
+				filePath = await saveVoiceFromMessage(client, replied);
+				textToProcess = (
+					await withRateLimitRetry(ctx, () =>
+						deps.transcriber.transcribeOggFile(filePath, {
+							language: "Russian",
+						}),
+					)
+				).trim();
+			}
 		} else {
 			// Handle text messages
 			textToProcess = replied.message?.trim() || "";
@@ -102,7 +117,7 @@ export async function commandTldr(
 		const prompt = buildTldrPrompt(textToProcess);
 
 		// Get TLDR from AI
-		const tldr = await deps.ai.generateText(prompt);
+		const tldr = await withRateLimitRetry(ctx, () => deps.ai.generateText(prompt));
 
 		// Send TLDR back
 		await replyTo(client, message, tldr);

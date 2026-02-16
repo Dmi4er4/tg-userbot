@@ -15,6 +15,17 @@ export function isVoiceMessage(message: Api.Message | undefined): boolean {
     return mime === "audio/ogg";
 }
 
+export function isVideoNote(message: Api.Message | undefined): boolean {
+    if (!message) return false;
+    const media = message.media;
+    if (!(media instanceof Api.MessageMediaDocument)) return false;
+    const document = media.document;
+    if (!(document instanceof Api.Document)) return false;
+    return document.attributes?.some((attr: Api.TypeDocumentAttribute) => {
+        return attr instanceof Api.DocumentAttributeVideo && Boolean((attr as Api.DocumentAttributeVideo).roundMessage);
+    }) ?? false;
+}
+
 export function isPrivatePeer(peer: Api.TypePeer | undefined): boolean {
     return Boolean(peer && peer instanceof Api.PeerUser);
 }

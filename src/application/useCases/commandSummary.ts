@@ -1,7 +1,10 @@
 import { Api, type TelegramClient } from "telegram";
 import type { AI } from "@/domain/ai";
+import { withRateLimitRetry } from "@/application/withRateLimitRetry";
 import { MESSAGES } from "@/messages";
-import { isGroupPeer, isVoiceMessage, replyTo } from "@/telegram/utils";
+import { formatMediaMessage } from "@/telegram/mediaDescription";
+import { getSenderDisplayName } from "@/telegram/senderName";
+import { isGroupPeer, replyTo } from "@/telegram/utils";
 
 function parseSummaryCommand(
 	text: string | undefined,
@@ -21,147 +24,6 @@ function parseSummaryCommand(
 	const promptAddition = parts.slice(1).join(" ").trim() || undefined;
 
 	return { count, promptAddition };
-}
-
-async function getSenderDisplayName(
-	client: TelegramClient,
-	message: Api.Message,
-): Promise<string> {
-	if (!message.fromId) return "Unknown";
-
-	try {
-		if (message.fromId instanceof Api.PeerUser) {
-			const user = await client.getEntity(message.fromId);
-			if (user instanceof Api.User) {
-				if (user.username) {
-					return `@${user.username}`;
-				}
-				if (user.firstName || user.lastName) {
-					return [user.firstName, user.lastName]
-						.filter(Boolean)
-						.join(" ")
-						.trim();
-				}
-				return `User ${user.id}`;
-			}
-		}
-	} catch (error) {
-		console.error("Error getting sender display name:", error);
-	}
-
-	return "Unknown";
-}
-
-function formatMediaMessage(message: Api.Message): string | null {
-	const media = message.media;
-	if (!media) return null;
-
-	// Photo (grouped photos are handled separately in formatMessagesWithUsernames)
-	if (media instanceof Api.MessageMediaPhoto) {
-		return "*photo*";
-	}
-
-	// Sticker
-	if (media instanceof Api.MessageMediaDocument) {
-		const document = media.document;
-		if (document instanceof Api.Document) {
-			const isSticker = document.attributes?.some(
-				(attr) => attr instanceof Api.DocumentAttributeSticker,
-			);
-			if (isSticker) {
-				return "*sticker*";
-			}
-
-			// Voice message
-			if (isVoiceMessage(message)) {
-				return "*voice message*";
-			}
-
-			// Video
-			const isVideo = document.attributes?.some(
-				(attr) => attr instanceof Api.DocumentAttributeVideo,
-			);
-			if (isVideo) {
-				return "*video message*";
-			}
-
-			// Audio (music)
-			const isAudio = document.attributes?.some(
-				(attr) =>
-					attr instanceof Api.DocumentAttributeAudio &&
-					!(attr as Api.DocumentAttributeAudio).voice,
-			);
-			if (isAudio) {
-				return "*audio file*";
-			}
-
-			// Other documents (files)
-			const mimeType = document.mimeType;
-			if (mimeType) {
-				// Extract file extension from mime type or filename
-				let fileType = "file";
-				const fileNameAttr = document.attributes?.find(
-					(attr) => attr instanceof Api.DocumentAttributeFilename,
-				);
-
-				if (fileNameAttr instanceof Api.DocumentAttributeFilename) {
-					const ext = fileNameAttr.fileName.split(".").pop()?.toLowerCase();
-					if (ext) {
-						fileType = `${ext} file`;
-					}
-				} else {
-					// Try to infer from mime type
-					const mimeParts = mimeType.split("/");
-					if (mimeParts.length === 2) {
-						const type = mimeParts[0];
-						const subtype = mimeParts[1];
-						if (type === "application") {
-							fileType = `${subtype} file`;
-						} else {
-							fileType = `${subtype} file`;
-						}
-					}
-				}
-
-				return `*${fileType}*`;
-			}
-
-			return "*file*";
-		}
-	}
-
-	// Video (as media, not document)
-	if (media instanceof Api.MessageMediaDocument) {
-		const document = media.document;
-		if (document instanceof Api.Document) {
-			const isVideo = document.attributes?.some(
-				(attr) => attr instanceof Api.DocumentAttributeVideo,
-			);
-			if (isVideo) {
-				return "*video message*";
-			}
-		}
-	}
-
-	// Contact
-	if (media instanceof Api.MessageMediaContact) {
-		return "*contact*";
-	}
-
-	// Location
-	if (
-		media instanceof Api.MessageMediaGeo ||
-		media instanceof Api.MessageMediaVenue
-	) {
-		return "*location*";
-	}
-
-	// Poll
-	if (media instanceof Api.MessageMediaPoll) {
-		return "*poll*";
-	}
-
-	return "*media*";
 }
 
 async function formatMessagesWithUsernames(
@@ -399,7 +261,7 @@ export async function commandSummary(
 			: basePrompt;
 
 		// Get summary from AI
-		const summary = await deps.ai.generateText(finalPrompt);
+		const summary = await withRateLimitRetry(ctx, () => deps.ai.generateText(finalPrompt));
 
 		// Send summary back to chat
 		await replyTo(

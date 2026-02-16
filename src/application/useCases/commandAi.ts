@@ -1,9 +1,10 @@
 import type { Api, TelegramClient } from "telegram";
 import type { AI } from "@/domain/ai";
 import type { Transcriber } from "@/domain/transcriber";
+import { withRateLimitRetry } from "@/application/withRateLimitRetry";
 import { MESSAGES } from "@/messages";
-import { getRepliedMessage, isVoiceMessage, replyTo } from "@/telegram/utils";
-import { saveVoiceFromMessage } from "@/telegram/voice";
+import { getRepliedMessage, isVideoNote, isVoiceMessage, replyTo } from "@/telegram/utils";
+import { saveVideoNoteFromMessage, saveVoiceFromMessage } from "@/telegram/voice";
 
 function parseAiPrompt(text: string | undefined): string {
     const raw = (text ?? "").trim();
@@ -29,6 +30,25 @@ const buildPrompt = (d: TBuildPromptArgs): string => {
         : `Ответь по содержанию сообщения${additionalInfo}:\n${d.replied.message}`;
 };
 
+async function transcribeMessage(
+    ctx: { client: TelegramClient; message: Api.Message },
+    replied: Api.Message,
+    transcriber: Transcriber,
+): Promise<string> {
+    let filePath: string;
+    if (isVideoNote(replied)) {
+        filePath = await saveVideoNoteFromMessage(ctx.client, replied);
+    } else {
+        filePath = await saveVoiceFromMessage(ctx.client, replied);
+    }
+
+    return withRateLimitRetry(ctx, () =>
+        isVideoNote(replied)
+            ? transcriber.transcribeFile(filePath, "video/mp4", { language: "Russian" })
+            : transcriber.transcribeOggFile(filePath, { language: "Russian" }),
+    ).then((t) => t.trim());
+}
+
 export async function commandAi(
     ctx: { client: TelegramClient; message: Api.Message },
     deps: { ai: AI; transcriber: Transcriber },
@@ -40,9 +60,8 @@ export async function commandAi(
 
         let finalPrompt = userPrompt;
         if (replied) {
-            if (isVoiceMessage(replied)) {
-                const filePath = await saveVoiceFromMessage(client, replied);
-                const transcript = (await deps.transcriber.transcribeOggFile(filePath, { language: "Russian" })).trim();
+            if (isVoiceMessage(replied) || isVideoNote(replied)) {
+                const transcript = await transcribeMessage(ctx, replied, deps.transcriber);
                 finalPrompt = buildPrompt({ userPrompt, replied, transcript });
             } else {
                 finalPrompt = buildPrompt({ userPrompt, replied });
@@ -54,7 +73,7 @@ export async function commandAi(
             return;
         }
 
-        const answer = await deps.ai.generateText(finalPrompt);
+        const answer = await withRateLimitRetry(ctx, () => deps.ai.generateText(finalPrompt));
         await replyTo(client, message, answer);
     } catch (error) {
         console.error("Error handling /ai:", error);
