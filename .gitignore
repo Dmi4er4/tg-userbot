@@ -1,6 +1,15 @@
-node_modules
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+node_modules/
 dist/
-voices
+
+voices/
+data/
 .env
 .env.*
 !.env.example

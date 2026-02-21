@@ -1,0 +1,8 @@
+telethon
+pydantic-settings
+python-dotenv
+cryptg
+aiohttp
+SpeechRecognition
+pydub
+Pillow

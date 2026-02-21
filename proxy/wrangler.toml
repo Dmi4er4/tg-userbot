@@ -1,3 +1,0 @@
-name = "google-ai-proxy"
-main = "src/index.ts"
-compatibility_date = "2024-12-01"

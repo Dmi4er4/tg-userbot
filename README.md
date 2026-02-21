@@ -1,86 +1,71 @@
 # tg-userbot
 
-Telegram userbot that auto-transcribes voice messages and provides AI-powered commands, using Google GenAI.
+Telegram userbot with voice transcription, deleted message tracking, and utility commands.
 
 ## Features
 
-- **Auto-transcription** — automatically transcribes voice messages in private chats and configurable group chats
-- `/convert` — transcribe a replied voice message on demand
-- `/ai {prompt}` — ask AI a question; supports reply to text or voice for additional context
-- `/tldr` — summarize a replied message (text or voice)
-- `/summary {count} [prompt]` — summarize the last N messages in a group chat (supports forum topics)
-- `/g {query}` — generate a Google search link; can combine query with replied message text
-- `/n [text]` — edit a message to append a disclaimer (edits replied message or the command message itself)
+- **Auto-transcription** — automatically transcribes voice messages in private chats and configurable group chats (via SpeechRecognition)
+- `.convert` — transcribe a replied voice message on demand
+- `.save [tag]` — save a replied message to the userbot channel with `#tag` (default `#save`)
+- `.id` — show the ID of a user (reply) or current chat
+- `.sticker` — convert a replied sticker to a regular photo (PNG)
+- `.ss [url]` — screenshot a website and send as photo
+- `.w [term]` — look up a term on Wikipedia (ru, then en fallback)
+- `.g {query}` — generate a Google search link; can combine query with replied message text
+- `.n [text]` — edit a message to append a disclaimer
+- **Deleted/edited message tracker** — automatically forwards deleted and edited messages to the userbot channel with `#deleted` / `#edited` tags
+- **Disappearing media** — automatically saves self-destructing photos and media to the channel with `#disappearing` tag
 
 ## Setup
 
-### Prerequisites
+### 1. Login
 
-- Node.js 22+
-- pnpm 10+
-
-### Get Telegram API credentials
-
-1. Go to [my.telegram.org](https://my.telegram.org)
-2. Log in and go to **API development tools**
-3. Create an application to get your `API_ID` and `API_HASH`
-
-### Get a Google API key
-
-1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
-2. Create an API key
-
-### Run locally
+Login mode asks for API credentials interactively and prints a `TG_SESSION` string.
 
 ```bash
-cp .env.example .env
-# Fill in .env with your credentials
-pnpm install
-pnpm dev
+# Locally:
+pip install -r requirements.txt
+python -m src_py login
+
+# Or via Docker:
+docker compose run --rm dmi4er4-userbot python -m src_py login
 ```
 
-On first login the bot will prompt for your phone number and auth code. After login it prints a `TG_SESSION` string — save it to `.env` so future runs skip the login prompt.
-
-### Run with Docker
+### 2. Configure
 
 ```bash
-cp .env.example .env
-# Fill in .env with your credentials
+cp .env.example .env.dmi4er4
+```
 
-# First run — interactive login (prompts for phone code):
-docker compose run --rm tg-userbot
+Paste the `TG_SESSION` value from the login step. Optionally set `USERBOT_CHANNEL_ID`.
 
-# After saving TG_SESSION to .env, run in background:
-docker compose up -d
+### 3. Run
+
+```bash
+# Docker:
+docker compose up -d dmi4er4-userbot
+
+# Or locally:
+python -m src_py
 ```
 
 ## Environment variables
 
 | Variable | Required | Description |
 |---|---|---|
-| `TG_API_ID` | Yes | Telegram API ID (number) |
+| `TG_API_ID` | Yes | Telegram API ID |
 | `TG_API_HASH` | Yes | Telegram API hash |
-| `GOOGLE_API_KEY` | Yes | Google GenAI API key |
-| `TG_SESSION` | No | Session string (printed on first login) |
-| `TG_PHONE_NUMBER` | No | Phone number for non-interactive login |
-| `TG_PASSWORD` | No | 2FA password for non-interactive login |
-| `TG_PHONE_CODE` | No | Auth code for non-interactive login |
-| `GOOGLE_MODEL` | No | Model for transcription (default: `gemini-2.5-flash`) |
-| `GOOGLE_TEXT_MODEL` | No | Model for text AI commands (default: same as `GOOGLE_MODEL`) |
-| `AUTO_TRANSCRIBE_PEER_IDS` | No | Comma-separated peer IDs to auto-transcribe in (besides private chats) |
+| `TG_SESSION` | Yes | Session string (run `python -m src_py login` to generate) |
+| `USERBOT_CHANNEL_ID` | No | Channel ID for saving messages (default: Saved Messages) |
+| `AUTO_TRANSCRIBE_PEER_IDS` | No | Comma-separated peer IDs to auto-transcribe in |
 | `TRANSCRIBE_DISABLED_PEER_IDS` | No | Comma-separated peer IDs where auto-transcription is disabled |
-| `GOOGLE_API_BASE_URL` | No | Custom base URL for Google API (for proxying in unsupported regions) |
-
-## Architecture
-
-- **Domain** — `Transcriber`, `AI` interfaces
-- **Impl** — Google GenAI adapters (`@google/genai`)
-- **Application** — use cases (private auto-transcribe, `/convert`, `/ai`, `/tldr`, `/summary`, `/g`, `/n`)
-- **Presentation** — ordered handlers registry and bot event loop
+| `DELETED_TRACKER_ENABLED` | No | Enable deleted message tracker (default: `true`) |
 
 ## Deployment
 
-See `scripts/deploy.sh`. Requires `DEPLOY_HOST` and optionally `DOCKER_IMAGE` / `DEPLOY_PATH` env vars.
+```bash
+DEPLOY_HOST=your-server DOCKER_IMAGE=your-registry/tg-userbot bash scripts/deploy.sh
+```
 
 ## License
 

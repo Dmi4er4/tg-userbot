@@ -1,23 +1,14 @@
-FROM node:22-alpine
-
-ENV PNPM_HOME=/usr/local/share/pnpm \
-    PATH=$PNPM_HOME:$PATH
-
-RUN corepack enable && corepack prepare pnpm@10.12.4 --activate
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install deps first (no lockfile here; service-level install is fine)
-COPY package.json ./
-RUN pnpm install --prefer-offline --frozen-lockfile=false
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
-# Copy source
-COPY tsconfig.json ./
-COPY src ./src
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Ensure runtime dir exists for saved voices
+COPY src_py ./src_py
+
 RUN mkdir -p /app/voices
 
-CMD ["pnpm", "start"]
-
-
+CMD ["python", "-m", "src_py"]
