@@ -16,3 +16,12 @@ services:
     env_file:
       - .env.taak
     restart: unless-stopped
+
+  charndv-userbot:
+    build: .
+    platform: linux/amd64
+    container_name: charndv-userbot
+    network_mode: host
+    env_file:
+      - .env.charndv
+    restart: unless-stopped

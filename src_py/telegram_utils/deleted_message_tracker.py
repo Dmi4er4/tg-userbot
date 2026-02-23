@@ -1,4 +1,5 @@
 import asyncio
+import difflib
 import io
 import logging
 import time
@@ -286,14 +287,25 @@ class DeletedMessageTracker:
         else:
             dt = datetime.fromtimestamp(float(cached.date), tz=timezone.utc)
         date_str = dt.strftime("%Y-%m-%d %H:%M")
-        return "\n".join(
-            [
-                f"{title} #{tag}",
-                f"От: {cached.sender_name}",
-                f"Чат: {cached.chat_label}",
-                f"Время: {date_str}",
-            ]
-        )
+        lines = [
+            f"{title} #{tag}",
+            f"От: {cached.sender_name}",
+            f"Чат: {cached.chat_label}",
+            f"Время: {date_str}",
+        ]
+        peer = cached.peer
+        if isinstance(peer, types.PeerChannel):
+            peer_id = peer.channel_id
+        elif isinstance(peer, types.PeerChat):
+            peer_id = peer.chat_id
+        elif isinstance(peer, types.PeerUser):
+            peer_id = peer.user_id
+        else:
+            peer_id = None
+        if peer_id is not None:
+            link = f"https://t.me/c/{peer_id}/{cached.message_id}"
+            lines.append(f"Ссылка: {link}")
+        return "\n".join(lines)
 
     async def _send_to_saved(
         self, title: str, cached: CachedMessage, tag: str = "deleted"
@@ -327,10 +339,27 @@ class DeletedMessageTracker:
         lines = [header, ""]
         if media_changed:
             lines.append("Медиа изменено.")
-        if cached.text:
-            lines.append(f"Было:\n{cached.text}")
-        if new_text:
-            lines.append(f"\nСтало:\n{new_text}")
+
+        old = cached.text
+        new = new_text
+        if old and new:
+            diff_lines = list(
+                difflib.unified_diff(
+                    old.splitlines(keepends=True),
+                    new.splitlines(keepends=True),
+                    lineterm="",
+                )
+            )
+            # skip --- / +++ headers
+            diff_body = [l for l in diff_lines if not l.startswith(("---", "+++"))]
+            if diff_body:
+                lines.append("\n".join(diff_body))
+            else:
+                lines.append("(текст не изменён)")
+        elif old:
+            lines.append(f"Было:\n{old}")
+        elif new:
+            lines.append(f"Стало:\n{new}")
 
         await self._client.send_message(self._channel_id, "\n".join(lines))
         logger.info(
