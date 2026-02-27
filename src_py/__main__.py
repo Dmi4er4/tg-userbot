@@ -13,6 +13,7 @@ from telethon.tl import types
 
 from src_py.config import settings
 from src_py.impl.speech_recognition_transcriber import SpeechRecognitionTranscriber
+from src_py.impl.groq_whisper_transcriber import GroqWhisperTranscriber
 from src_py.presentation.bot import TgUserbot
 from src_py.presentation.handlers import create_handlers
 
@@ -27,7 +28,16 @@ async def _login() -> None:
     api_id = int(input("TG_API_ID: ").strip())
     api_hash = input("TG_API_HASH: ").strip()
 
-    client = TelegramClient(StringSession(), api_id, api_hash)
+    client = TelegramClient(
+        StringSession(),
+        api_id,
+        api_hash,
+        device_model="Samsung Galaxy S24",
+        system_version="Android 14",
+        app_version="10.14.5",
+        lang_code="ru",
+        system_lang_code="ru-RU",
+    )
     await client.start()
 
     session_str = client.session.save()
@@ -91,13 +101,19 @@ async def _run() -> None:
         logger.info("USERBOT_CHANNEL_ID not set; using Saved Messages")
         userbot_target = "me"
 
-    transcriber = SpeechRecognitionTranscriber()
+    if settings.groq_api_key:
+        transcriber = GroqWhisperTranscriber(settings.groq_api_key)
+        logger.info("Using Groq Whisper API for transcription")
+    else:
+        transcriber = SpeechRecognitionTranscriber()
+        logger.info("GROQ_API_KEY not set; using Google Speech Recognition")
 
     handlers = create_handlers(
         transcriber=transcriber,
         channel_id=userbot_target,
         auto_transcribe_peer_ids=settings.get_auto_transcribe_peer_ids(),
         transcribe_disabled_peer_ids=settings.get_transcribe_disabled_peer_ids(),
+        yandex_music_token=settings.yandex_music_token,
     )
 
     bot = TgUserbot(

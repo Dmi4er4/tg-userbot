@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     auto_transcribe_peer_ids: str = ""
     transcribe_disabled_peer_ids: str = ""
     deleted_tracker_enabled: bool = True
+    groq_api_key: str = ""
+    yandex_music_token: str = ""
 
     def get_userbot_channel_id(self) -> int | None:
         if not self.userbot_channel_id.strip():

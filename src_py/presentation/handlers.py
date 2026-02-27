@@ -5,6 +5,7 @@ from telethon import TelegramClient
 from telethon.tl import types
 
 from src_py.application.use_cases.command_google import command_google
+from src_py.application.use_cases.command_yandex_music import command_yandex_music
 from src_py.application.use_cases.command_id import command_id
 from src_py.application.use_cases.command_n import command_n
 from src_py.application.use_cases.command_save import command_save
@@ -42,6 +43,7 @@ def create_handlers(
     channel_id: object,
     auto_transcribe_peer_ids: set[str],
     transcribe_disabled_peer_ids: set[str],
+    yandex_music_token: str = "",
 ) -> list[Handler]:
     return [
         Handler(
@@ -101,6 +103,13 @@ def create_handlers(
             name="Command .n",
             is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".n"),
             handle=lambda c, msg: command_n(c, msg),
+        ),
+        Handler(
+            name="Command .ym",
+            is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".ym"),
+            handle=lambda c, msg: command_yandex_music(
+                c, msg, yandex_music_token=yandex_music_token
+            ),
         ),
     ]
 

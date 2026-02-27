@@ -2,11 +2,31 @@ import logging
 
 from telethon import TelegramClient, events
 from telethon.tl import types
+from telethon.tl.functions.messages import UpdatePinnedMessageRequest
 
 from src_py.presentation.handlers import Handler
 from src_py.telegram_utils.deleted_message_tracker import DeletedMessageTracker
 
 logger = logging.getLogger(__name__)
+
+HELP_TEXT = """**📋 Userbot — команды и возможности**
+
+**Команды** (отправляй в любой чат):
+`.convert` — транскрибация голосового/видеокружка (ответом на сообщение)
+`.save [#тег]` — сохранить сообщение в канал юзербота (по умолчанию #save)
+`.id` — получить ID пользователя (ответом) или чата
+`.sticker` — конвертировать стикер в фото (ответом на стикер)
+`.ss <url>` — скриншот сайта
+`.w <запрос>` — поиск в Википедии (сначала RU, потом EN)
+`.g <запрос>` — ссылка на поиск Google
+`.n <текст>` — добавить дисклеймер GTA 5 RP
+`.ym <ссылка>` — скачать трек из Яндекс Музыки в MP3
+
+**Автоматические функции:**
+• Транскрибация голосовых в личных сообщениях
+• Транскрибация в выбранных группах (AUTO\\_TRANSCRIBE\\_PEER\\_IDS)
+• Сохранение исчезающих медиа (#disappearing)
+• Трекинг удалённых/отредактированных сообщений (#deleted / #edited)"""
 
 
 class TgUserbot:
@@ -36,7 +56,25 @@ class TgUserbot:
             )
             self._deleted_tracker.start()
 
+        await self._pin_help_message()
+
         self._client.add_event_handler(self._on_new_message, events.NewMessage)
+
+    async def _pin_help_message(self) -> None:
+        if self._channel_id == "me":
+            return
+        try:
+            msg = await self._client.send_message(self._channel_id, HELP_TEXT)
+            await self._client(
+                UpdatePinnedMessageRequest(
+                    peer=self._channel_id,
+                    id=msg.id,
+                    silent=True,
+                )
+            )
+            logger.info("Help message pinned (msg_id=%s)", msg.id)
+        except Exception:
+            logger.exception("Failed to pin help message")
 
     async def _on_new_message(self, event: events.NewMessage.Event) -> None:
         message = event.message

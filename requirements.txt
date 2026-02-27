@@ -6,3 +6,4 @@ aiohttp
 SpeechRecognition
 pydub
 Pillow
+yandex-music
