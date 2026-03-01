@@ -2,6 +2,7 @@ import logging
 
 from telethon import TelegramClient
 from telethon.tl import types
+from telethon.tl.functions.messages import MarkDialogUnreadRequest
 
 from src_py import messages
 from src_py.domain.transcriber import Transcriber, TranscribeOptions
@@ -37,6 +38,14 @@ async def private_transcribe_voice(
             await reply_to(client, message, f"Расшифровка:\n{cleaned}")
         else:
             await reply_to(client, message, "Расшифровка: <empty>")
+
+        try:
+            await client(MarkDialogUnreadRequest(
+                peer=message.peer_id,
+                unread=True,
+            ))
+        except Exception:
+            logger.exception("Failed to mark dialog as unread")
     except Exception:
         logger.exception("Error transcribing private voice/videonote")
         await reply_to(client, message, messages.ERROR)

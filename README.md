@@ -13,7 +13,8 @@ Telegram userbot with voice transcription, deleted message tracking, and utility
 - `.w [term]` — look up a term on Wikipedia (ru, then en fallback)
 - `.g {query}` — generate a Google search link; can combine query with replied message text
 - `.n [text]` — edit a message to append a disclaimer
-- **Deleted/edited message tracker** — automatically forwards deleted and edited messages to the userbot channel with `#deleted` / `#edited` tags
+- `.ai [question]` — ask a question to an AI bot (Gemini via @genesis_test_bot); supports reply context
+- **Deleted/edited message tracker** — automatically forwards deleted and edited messages to the userbot channel with `#deleted` / `#edited` tags (channels and archived chats are ignored; edits under 3 characters are skipped)
 - **Disappearing media** — automatically saves self-destructing photos and media to the channel with `#disappearing` tag
 
 ## Setup
@@ -60,6 +61,7 @@ python -m src_py
 | `AUTO_TRANSCRIBE_PEER_IDS` | No | Comma-separated peer IDs to auto-transcribe in |
 | `TRANSCRIBE_DISABLED_PEER_IDS` | No | Comma-separated peer IDs where auto-transcription is disabled |
 | `DELETED_TRACKER_ENABLED` | No | Enable deleted message tracker (default: `true`) |
+| `ELIZA_BOT_ID` | No | Telegram bot ID for `.ai` command (`.ai` disabled if not set) |
 
 ## Deployment
 

@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 CACHE_TTL_S = 24 * 60 * 60  # 24 hours
 EVICT_INTERVAL_S = 60 * 60  # 1 hour
+MIN_EDIT_CHAR_THRESHOLD = 3
 
 MIME_TO_EXT: dict[str, str] = {
     "image/jpeg": "jpg",
@@ -51,6 +52,25 @@ class CachedMessage:
     media_description: str | None
     media: CachedMedia | None
     channel_id: str | None
+
+
+def _count_changed_chars(old_text: str | None, new_text: str | None) -> int:
+    old = old_text or ""
+    new = new_text or ""
+    if old == new:
+        return 0
+    diff_lines = difflib.unified_diff(
+        old.splitlines(keepends=True),
+        new.splitlines(keepends=True),
+        lineterm="",
+    )
+    changed = 0
+    for line in diff_lines:
+        if line.startswith(("---", "+++", "@@")):
+            continue
+        if line.startswith(("+", "-")):
+            changed += len(line) - 1
+    return changed
 
 
 def _mime_to_ext(mime: str) -> str:
@@ -104,22 +124,62 @@ class DeletedMessageTracker:
         self._cache: dict[str, CachedMessage] = {}
         self._read_up_to: dict[str, int] = {}
         self._evict_task: asyncio.Task | None = None
+        self._refresh_task: asyncio.Task | None = None
+        self._archived_peer_ids: set[str] = set()
 
     def start(self) -> None:
         self._client.add_event_handler(self._on_raw_update)
         self._evict_task = asyncio.create_task(self._evict_loop())
+        self._refresh_task = asyncio.create_task(self._initial_refresh())
         logger.info("[DeletedMessageTracker] started")
 
     def stop(self) -> None:
         if self._evict_task:
             self._evict_task.cancel()
             self._evict_task = None
+        if self._refresh_task:
+            self._refresh_task.cancel()
+            self._refresh_task = None
+
+    async def _initial_refresh(self) -> None:
+        try:
+            await self._refresh_archived_peers()
+        except Exception:
+            logger.exception("[DeletedMessageTracker] initial archive refresh failed")
+
+    async def _refresh_archived_peers(self) -> None:
+        ids: set[str] = set()
+        async for dialog in self._client.iter_dialogs(folder=1):
+            entity = dialog.entity
+            if isinstance(entity, (types.Channel, types.Chat, types.User)):
+                ids.add(str(entity.id))
+        self._archived_peer_ids = ids
+        logger.info("[DeletedMessageTracker] refreshed archived peers: %d", len(ids))
+
+    def _should_skip_peer(self, peer: types.TypePeer) -> bool:
+        if isinstance(peer, types.PeerChannel):
+            return True
+        peer_id_str = self._get_raw_peer_id(peer)
+        return peer_id_str is not None and peer_id_str in self._archived_peer_ids
+
+    @staticmethod
+    def _get_raw_peer_id(peer: types.TypePeer) -> str | None:
+        if isinstance(peer, types.PeerUser):
+            return str(peer.user_id)
+        if isinstance(peer, types.PeerChat):
+            return str(peer.chat_id)
+        if isinstance(peer, types.PeerChannel):
+            return str(peer.channel_id)
+        return None
 
     async def cache_message(self, message: types.Message) -> None:
         if (
             isinstance(message.from_id, types.PeerUser)
             and str(message.from_id.user_id) == self._self_user_id
         ):
+            return
+
+        if self._should_skip_peer(message.peer_id):
             return
 
         sender_id = (
@@ -184,7 +244,12 @@ class DeletedMessageTracker:
         for msg_id in update.messages:
             key = self._make_cache_key(msg_id, None)
             cached = self._cache.get(key)
-            if cached and self._is_unread(cached):
+            if not cached:
+                continue
+            if self._should_skip_peer(cached.peer):
+                self._cache.pop(key, None)
+                continue
+            if self._is_unread(cached):
                 try:
                     await self._send_to_saved("\U0001f5d1 Удалённое сообщение", cached)
                 except Exception:
@@ -194,16 +259,7 @@ class DeletedMessageTracker:
     async def _handle_delete_channel_messages(
         self, update: types.UpdateDeleteChannelMessages
     ) -> None:
-        channel_id = str(update.channel_id)
-        for msg_id in update.messages:
-            key = self._make_cache_key(msg_id, channel_id)
-            cached = self._cache.get(key)
-            if cached and self._is_unread(cached):
-                try:
-                    await self._send_to_saved("\U0001f5d1 Удалённое сообщение", cached)
-                except Exception:
-                    logger.exception("[DeletedMessageTracker] forward error")
-            self._cache.pop(key, None)
+        return
 
     async def _handle_edit_message(
         self, update: types.UpdateEditMessage
@@ -224,7 +280,11 @@ class DeletedMessageTracker:
         new_text = msg.message
         new_media = await self._extract_cached_media(msg)
         media_changed = self._is_media_changed(cached.media, new_media)
-        if cached.text != new_text or media_changed:
+        text_changed = cached.text != new_text
+        if text_changed and not media_changed:
+            if _count_changed_chars(cached.text, new_text) < MIN_EDIT_CHAR_THRESHOLD:
+                text_changed = False
+        if text_changed or media_changed:
             try:
                 await self._send_edited_to_saved(cached, new_text, media_changed)
             except Exception:
@@ -238,32 +298,7 @@ class DeletedMessageTracker:
     async def _handle_edit_channel_message(
         self, update: types.UpdateEditChannelMessage
     ) -> None:
-        msg = update.message
-        if not isinstance(msg, types.Message):
-            return
-        channel_id = (
-            str(msg.peer_id.channel_id)
-            if isinstance(msg.peer_id, types.PeerChannel)
-            else None
-        )
-        key = self._make_cache_key(msg.id, channel_id)
-        cached = self._cache.get(key)
-        if not cached or not self._is_unread(cached):
-            return
-
-        new_text = msg.message
-        new_media = await self._extract_cached_media(msg)
-        media_changed = self._is_media_changed(cached.media, new_media)
-        if cached.text != new_text or media_changed:
-            try:
-                await self._send_edited_to_saved(cached, new_text, media_changed)
-            except Exception:
-                logger.exception("[DeletedMessageTracker] edit forward error")
-
-        cached.text = new_text
-        cached.media = new_media
-        cached.media_description = format_media_message(msg)
-        cached.cached_at = time.time()
+        return
 
     def _is_unread(self, cached: CachedMessage) -> bool:
         if cached.channel_id:
@@ -381,12 +416,14 @@ class DeletedMessageTracker:
                 dest, f, caption=caption, force_document=False
             )
         elif media.media_type == "voiceNote":
+            f = self._make_named_file(media.data, "voice.ogg")
             await self._client.send_file(
-                dest, media.data, caption=caption, voice_note=True
+                dest, f, caption=caption, voice_note=True
             )
         elif media.media_type == "videoNote":
             await self._client.send_message(dest, caption)
-            await self._client.send_file(dest, media.data, video_note=True)
+            f = self._make_named_file(media.data, "video_note.mp4")
+            await self._client.send_file(dest, f, video_note=True)
         else:
             f = self._make_named_file(media.data, media.file_name)
             await self._client.send_file(
@@ -456,3 +493,7 @@ class DeletedMessageTracker:
                     len(expired),
                     len(self._cache),
                 )
+            try:
+                await self._refresh_archived_peers()
+            except Exception:
+                logger.exception("[DeletedMessageTracker] archive refresh failed")

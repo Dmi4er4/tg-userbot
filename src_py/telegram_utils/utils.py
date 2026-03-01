@@ -111,6 +111,17 @@ def _split_text(text: str) -> list[str]:
 async def reply_to(
     client: TelegramClient, message: types.Message, text: str
 ) -> None:
+    await send_formatted_reply(
+        client, message.peer_id, text, reply_to_msg_id=message.id
+    )
+
+
+async def send_formatted_reply(
+    client: TelegramClient,
+    peer: object,
+    text: str,
+    reply_to_msg_id: int | None = None,
+) -> None:
     chunks = _split_text(text)
 
     for i, chunk in enumerate(chunks):
@@ -125,8 +136,8 @@ async def reply_to(
         ]
 
         await client.send_message(
-            message.peer_id,
+            peer,
             final_text,
-            reply_to=message.id if i == 0 else None,
+            reply_to=reply_to_msg_id if i == 0 else None,
             formatting_entities=entities,
         )

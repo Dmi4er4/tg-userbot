@@ -3,6 +3,7 @@ import logging
 from telethon import TelegramClient, events
 from telethon.tl import types
 from telethon.tl.functions.messages import UpdatePinnedMessageRequest
+from telethon.tl.types import InputMessagesFilterPinned
 
 from src_py.presentation.handlers import Handler
 from src_py.telegram_utils.deleted_message_tracker import DeletedMessageTracker
@@ -20,6 +21,7 @@ HELP_TEXT = """**📋 Userbot — команды и возможности**
 `.w <запрос>` — поиск в Википедии (сначала RU, потом EN)
 `.g <запрос>` — ссылка на поиск Google
 `.n <текст>` — добавить дисклеймер GTA 5 RP
+`.ai <вопрос>` — задать вопрос AI (Gemini), можно ответом на сообщение
 `.ym <ссылка>` — скачать трек из Яндекс Музыки в MP3
 
 **Автоматические функции:**
@@ -64,6 +66,7 @@ class TgUserbot:
         if self._channel_id == "me":
             return
         try:
+            await self._delete_old_help_messages()
             msg = await self._client.send_message(self._channel_id, HELP_TEXT)
             await self._client(
                 UpdatePinnedMessageRequest(
@@ -75,6 +78,27 @@ class TgUserbot:
             logger.info("Help message pinned (msg_id=%s)", msg.id)
         except Exception:
             logger.exception("Failed to pin help message")
+
+    async def _delete_old_help_messages(self) -> None:
+        try:
+            ids_to_delete = []
+            async for msg in self._client.iter_messages(
+                self._channel_id,
+                filter=InputMessagesFilterPinned,
+            ):
+                if (
+                    isinstance(msg, types.Message)
+                    and msg.message
+                    and msg.message.startswith("\U0001f4cb Userbot")
+                ):
+                    ids_to_delete.append(msg.id)
+            if ids_to_delete:
+                await self._client.delete_messages(
+                    self._channel_id, ids_to_delete
+                )
+                logger.info("Deleted %d old help messages", len(ids_to_delete))
+        except Exception:
+            logger.exception("Failed to delete old help messages")
 
     async def _on_new_message(self, event: events.NewMessage.Event) -> None:
         message = event.message

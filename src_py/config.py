@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     deleted_tracker_enabled: bool = True
     groq_api_key: str = ""
     yandex_music_token: str = ""
+    eliza_bot_id: str = ""
 
     def get_userbot_channel_id(self) -> int | None:
         if not self.userbot_channel_id.strip():

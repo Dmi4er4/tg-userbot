@@ -4,6 +4,7 @@ from typing import Awaitable, Callable
 from telethon import TelegramClient
 from telethon.tl import types
 
+from src_py.application.use_cases.command_ai import command_ai
 from src_py.application.use_cases.command_google import command_google
 from src_py.application.use_cases.command_yandex_music import command_yandex_music
 from src_py.application.use_cases.command_id import command_id
@@ -44,8 +45,9 @@ def create_handlers(
     auto_transcribe_peer_ids: set[str],
     transcribe_disabled_peer_ids: set[str],
     yandex_music_token: str = "",
+    eliza_bot_id: int | None = None,
 ) -> list[Handler]:
-    return [
+    handlers = [
         Handler(
             name="Disappearing media auto-save",
             is_triggered=lambda _c, msg, _s: _disappearing_trigger(msg),
@@ -104,6 +106,20 @@ def create_handlers(
             is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".n"),
             handle=lambda c, msg: command_n(c, msg),
         ),
+    ]
+
+    if eliza_bot_id is not None:
+        handlers.append(
+            Handler(
+                name="Command .ai",
+                is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".ai"),
+                handle=lambda c, msg: command_ai(
+                    c, msg, eliza_bot_id=eliza_bot_id
+                ),
+            ),
+        )
+
+    handlers.append(
         Handler(
             name="Command .ym",
             is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".ym"),
@@ -111,7 +127,9 @@ def create_handlers(
                 c, msg, yandex_music_token=yandex_music_token
             ),
         ),
-    ]
+    )
+
+    return handlers
 
 
 async def _disappearing_trigger(message: types.Message) -> bool:

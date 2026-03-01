@@ -108,12 +108,14 @@ async def _run() -> None:
         transcriber = SpeechRecognitionTranscriber()
         logger.info("GROQ_API_KEY not set; using Google Speech Recognition")
 
+    eliza_bot_id = int(settings.eliza_bot_id) if settings.eliza_bot_id.strip() else None
     handlers = create_handlers(
         transcriber=transcriber,
         channel_id=userbot_target,
         auto_transcribe_peer_ids=settings.get_auto_transcribe_peer_ids(),
         transcribe_disabled_peer_ids=settings.get_transcribe_disabled_peer_ids(),
         yandex_music_token=settings.yandex_music_token,
+        eliza_bot_id=eliza_bot_id,
     )
 
     bot = TgUserbot(
