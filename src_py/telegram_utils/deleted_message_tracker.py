@@ -59,17 +59,12 @@ def _count_changed_chars(old_text: str | None, new_text: str | None) -> int:
     new = new_text or ""
     if old == new:
         return 0
-    diff_lines = difflib.unified_diff(
-        old.splitlines(keepends=True),
-        new.splitlines(keepends=True),
-        lineterm="",
-    )
+    sm = difflib.SequenceMatcher(None, old, new)
     changed = 0
-    for line in diff_lines:
-        if line.startswith(("---", "+++", "@@")):
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
             continue
-        if line.startswith(("+", "-")):
-            changed += len(line) - 1
+        changed += max(i2 - i1, j2 - j1)
     return changed
 
 
@@ -157,8 +152,6 @@ class DeletedMessageTracker:
         logger.info("[DeletedMessageTracker] refreshed archived peers: %d", len(ids))
 
     def _should_skip_peer(self, peer: types.TypePeer) -> bool:
-        if isinstance(peer, types.PeerChannel):
-            return True
         peer_id_str = self._get_raw_peer_id(peer)
         return peer_id_str is not None and peer_id_str in self._archived_peer_ids
 
@@ -259,7 +252,20 @@ class DeletedMessageTracker:
     async def _handle_delete_channel_messages(
         self, update: types.UpdateDeleteChannelMessages
     ) -> None:
-        return
+        channel_id = str(update.channel_id)
+        if channel_id in self._archived_peer_ids:
+            return
+        for msg_id in update.messages:
+            key = self._make_cache_key(msg_id, channel_id)
+            cached = self._cache.get(key)
+            if not cached:
+                continue
+            if self._is_unread(cached):
+                try:
+                    await self._send_to_saved("\U0001f5d1 Удалённое сообщение", cached)
+                except Exception:
+                    logger.exception("[DeletedMessageTracker] forward error")
+            self._cache.pop(key, None)
 
     async def _handle_edit_message(
         self, update: types.UpdateEditMessage
@@ -298,7 +304,7 @@ class DeletedMessageTracker:
     async def _handle_edit_channel_message(
         self, update: types.UpdateEditChannelMessage
     ) -> None:
-        return
+        await self._handle_edit_message(update)
 
     def _is_unread(self, cached: CachedMessage) -> bool:
         if cached.channel_id:

@@ -2,6 +2,7 @@ import asyncio
 import io
 import logging
 import os
+import re
 from pathlib import Path
 
 import aiohttp
@@ -18,6 +19,22 @@ LANGUAGE_MAP = {
 
 GROQ_TRANSCRIPTION_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 MODEL = "whisper-large-v3-turbo"
+
+# Known Whisper hallucination patterns (appears on silence / short audio)
+_HALLUCINATION_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"Продолжение следует\.{0,3}", re.IGNORECASE),
+    re.compile(r"Субтитры\s*(сделал|делал|создал|подготовил)\s*\S*", re.IGNORECASE),
+    re.compile(r"Редактор субтитров.{0,30}", re.IGNORECASE),
+    re.compile(r"Благодарю за просмотр\.?", re.IGNORECASE),
+    re.compile(r"Подписывайтесь на канал\.?", re.IGNORECASE),
+]
+
+
+def _strip_hallucinations(text: str) -> str:
+    result = text
+    for pat in _HALLUCINATION_PATTERNS:
+        result = pat.sub("", result)
+    return result.strip()
 
 
 class GroqWhisperTranscriber:
@@ -69,7 +86,7 @@ class GroqWhisperTranscriber:
                     logger.error("Groq API error %s: %s", resp.status, body)
                     return "(ошибка транскрибации)"
                 text = await resp.text()
-                return text.strip()
+                return _strip_hallucinations(text)
 
     @staticmethod
     def _mime_to_format(mime_type: str) -> str:

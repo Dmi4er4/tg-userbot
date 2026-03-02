@@ -82,6 +82,7 @@ class TgUserbot:
     async def _delete_old_help_messages(self) -> None:
         try:
             ids_to_delete = []
+            pinned_msg_ids = set()
             async for msg in self._client.iter_messages(
                 self._channel_id,
                 filter=InputMessagesFilterPinned,
@@ -92,11 +93,25 @@ class TgUserbot:
                     and msg.message.startswith("\U0001f4cb Userbot")
                 ):
                     ids_to_delete.append(msg.id)
+                    pinned_msg_ids.add(msg.id)
+            # Also find "pinned a message" service messages for these pins
+            if pinned_msg_ids:
+                async for msg in self._client.iter_messages(
+                    self._channel_id, limit=50
+                ):
+                    if (
+                        isinstance(msg, types.MessageService)
+                        and isinstance(msg.action, types.MessageActionPinMessage)
+                        and msg.reply_to
+                        and getattr(msg.reply_to, "reply_to_msg_id", None)
+                        in pinned_msg_ids
+                    ):
+                        ids_to_delete.append(msg.id)
             if ids_to_delete:
                 await self._client.delete_messages(
                     self._channel_id, ids_to_delete
                 )
-                logger.info("Deleted %d old help messages", len(ids_to_delete))
+                logger.info("Deleted %d old help/pin messages", len(ids_to_delete))
         except Exception:
             logger.exception("Failed to delete old help messages")
 
@@ -110,6 +125,13 @@ class TgUserbot:
                 await self._deleted_tracker.cache_message(message)
             except Exception:
                 logger.exception("[DeletedMessageTracker] cache error")
+
+        sender_id = str(message.from_id.user_id) if isinstance(message.from_id, types.PeerUser) else None
+        text = (message.message or "")[:50]
+        logger.debug(
+            "[bot] msg from=%s self=%s text=%r",
+            sender_id, self._self_user_id, text,
+        )
 
         for h in self._handlers:
             try:

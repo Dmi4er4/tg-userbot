@@ -61,7 +61,7 @@ python -m src_py
 | `AUTO_TRANSCRIBE_PEER_IDS` | No | Comma-separated peer IDs to auto-transcribe in |
 | `TRANSCRIBE_DISABLED_PEER_IDS` | No | Comma-separated peer IDs where auto-transcription is disabled |
 | `DELETED_TRACKER_ENABLED` | No | Enable deleted message tracker (default: `true`) |
-| `ELIZA_BOT_ID` | No | Telegram bot ID for `.ai` command (`.ai` disabled if not set) |
+| `ELIZA_BOT_USERNAME` | No | Telegram bot username for `.ai` command (`.ai` disabled if not set) |
 
 ## Deployment
 

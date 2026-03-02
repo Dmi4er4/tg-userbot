@@ -45,7 +45,7 @@ def create_handlers(
     auto_transcribe_peer_ids: set[str],
     transcribe_disabled_peer_ids: set[str],
     yandex_music_token: str = "",
-    eliza_bot_id: int | None = None,
+    eliza_bot_username: str | None = None,
 ) -> list[Handler]:
     handlers = [
         Handler(
@@ -108,13 +108,13 @@ def create_handlers(
         ),
     ]
 
-    if eliza_bot_id is not None:
+    if eliza_bot_username is not None:
         handlers.append(
             Handler(
                 name="Command .ai",
                 is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".ai"),
                 handle=lambda c, msg: command_ai(
-                    c, msg, eliza_bot_id=eliza_bot_id
+                    c, msg, bot_username=eliza_bot_username
                 ),
             ),
         )
