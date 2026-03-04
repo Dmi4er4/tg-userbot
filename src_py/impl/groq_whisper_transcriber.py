@@ -21,12 +21,32 @@ GROQ_TRANSCRIPTION_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 MODEL = "whisper-large-v3-turbo"
 
 # Known Whisper hallucination patterns (appears on silence / short audio)
+# Sources:
+#   https://gist.github.com/waveletdeboshir/8bf52f04bf78018194f25b2390c08309
+#   https://github.com/openai/whisper/discussions/2131
+#   https://huggingface.co/datasets/sachaarbonel/whisper-hallucinations
 _HALLUCINATION_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r"Продолжение следует\.{0,3}", re.IGNORECASE),
-    re.compile(r"Субтитры\s*(сделал|делал|создал|подготовил)\s*\S*", re.IGNORECASE),
+    # Subtitle credits
+    re.compile(r"Субтитры\s*(сделал|делал|создал|создавал|подготовил|подогнал)\s*\S*", re.IGNORECASE),
     re.compile(r"Редактор субтитров.{0,30}", re.IGNORECASE),
-    re.compile(r"Благодарю за просмотр\.?", re.IGNORECASE),
-    re.compile(r"Подписывайтесь на канал\.?", re.IGNORECASE),
+    re.compile(r"Спасибо за субтитры!?", re.IGNORECASE),
+    # Subscribe / like / watch
+    re.compile(r"Подпиши(сь|тесь)\s*(на\s*(канал|мой канал))?[.!]?", re.IGNORECASE),
+    re.compile(r"Подписывайтесь\s*(на\s*(канал|мой канал))?[.!]?", re.IGNORECASE),
+    re.compile(r"Ставь(те)?\s*лайк.{0,20}", re.IGNORECASE),
+    # Thanks for watching
+    re.compile(r"(Благодарю|Спасибо)\s*за\s*(просмотр|внимание)[.!]?", re.IGNORECASE),
+    re.compile(r"Thanks?\s*for\s*watching[.!]?", re.IGNORECASE),
+    re.compile(r"Thank\s*you\s*for\s*watching[.!]?", re.IGNORECASE),
+    # Continuation
+    re.compile(r"Продолжение следует\.{0,3}", re.IGNORECASE),
+    re.compile(r"Смотрите продолжение[.!]?", re.IGNORECASE),
+    # Music/sound stage directions (caps in brackets or without)
+    re.compile(r"\(?[А-ЯЁ]{2,}\s+МУЗЫКА\)?", re.IGNORECASE),
+    re.compile(r"\(?(АПЛОДИСМЕНТЫ|СМЕХ|ВЫСТРЕЛЫ?|ВЗРЫВ|ПЕРЕСТРЕЛКА|КАШЕЛЬ)\)?", re.IGNORECASE),
+    # English subtitle credit artifacts
+    re.compile(r"subtitles\s*(by|created by)\s*.{0,30}", re.IGNORECASE),
+    re.compile(r"amara\.?org", re.IGNORECASE),
 ]
 
 

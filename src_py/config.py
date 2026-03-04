@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     yandex_music_token: str = ""
     eliza_bot_username: str = ""
 
+    # ntfy configuration for reminders
+    ntfy_url: str = ""
+    ntfy_topic: str = ""
+    ntfy_user: str = ""
+    ntfy_pass: str = ""
+
     def get_userbot_channel_id(self) -> int | None:
         if not self.userbot_channel_id.strip():
             return None

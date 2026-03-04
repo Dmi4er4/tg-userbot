@@ -11,9 +11,11 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.tl import types
 
+from src_py.application.use_cases.command_remind import NtfyConfig, restore_pending_reminders
 from src_py.config import settings
 from src_py.impl.speech_recognition_transcriber import SpeechRecognitionTranscriber
 from src_py.impl.groq_whisper_transcriber import GroqWhisperTranscriber
+from src_py.infrastructure.reminder_store import ReminderStore
 from src_py.presentation.bot import TgUserbot
 from src_py.presentation.handlers import create_handlers
 
@@ -110,6 +112,26 @@ async def _run() -> None:
         transcriber = SpeechRecognitionTranscriber()
         logger.info("GROQ_API_KEY not set; using Google Speech Recognition")
 
+    # ntfy reminders setup
+    ntfy_config = None
+    reminder_store = None
+    tz = None
+    if settings.ntfy_url and settings.ntfy_topic:
+        from zoneinfo import ZoneInfo
+
+        ntfy_config = NtfyConfig(
+            url=settings.ntfy_url,
+            topic=settings.ntfy_topic,
+            user=settings.ntfy_user,
+            password=settings.ntfy_pass,
+        )
+        reminder_store = ReminderStore()
+        tz = ZoneInfo("Europe/Minsk")
+        restored = await restore_pending_reminders(ntfy_config, reminder_store)
+        logger.info("ntfy reminders enabled (topic=%s, restored=%d)", settings.ntfy_topic, restored)
+    else:
+        logger.info("NTFY_URL/NTFY_TOPIC not set; reminders disabled")
+
     eliza_bot_username = settings.eliza_bot_username.strip() or None
     handlers = create_handlers(
         transcriber=transcriber,
@@ -118,6 +140,9 @@ async def _run() -> None:
         transcribe_disabled_peer_ids=settings.get_transcribe_disabled_peer_ids(),
         yandex_music_token=settings.yandex_music_token,
         eliza_bot_username=eliza_bot_username,
+        ntfy_config=ntfy_config,
+        reminder_store=reminder_store,
+        tz=tz,
     )
 
     bot = TgUserbot(

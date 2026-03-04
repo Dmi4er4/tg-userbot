@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import tzinfo
 from typing import Awaitable, Callable
 
 from telethon import TelegramClient
@@ -6,6 +7,7 @@ from telethon.tl import types
 
 from src_py.application.use_cases.command_ai import command_ai
 from src_py.application.use_cases.command_google import command_google
+from src_py.application.use_cases.command_remind import NtfyConfig, command_remind
 from src_py.application.use_cases.command_yandex_music import command_yandex_music
 from src_py.application.use_cases.command_id import command_id
 from src_py.application.use_cases.command_n import command_n
@@ -17,6 +19,7 @@ from src_py.application.use_cases.command_wiki import command_wiki
 from src_py.application.use_cases.disappearing_media import forward_disappearing_media, is_disappearing_media
 from src_py.application.use_cases.private_transcribe import private_transcribe_voice
 from src_py.domain.transcriber import Transcriber
+from src_py.infrastructure.reminder_store import ReminderStore
 from src_py.telegram_utils.utils import get_peer_id, is_private_peer, is_video_note, is_voice_message
 
 
@@ -46,6 +49,9 @@ def create_handlers(
     transcribe_disabled_peer_ids: set[str],
     yandex_music_token: str = "",
     eliza_bot_username: str | None = None,
+    ntfy_config: NtfyConfig | None = None,
+    reminder_store: ReminderStore | None = None,
+    tz: "tzinfo | None" = None,
 ) -> list[Handler]:
     handlers = [
         Handler(
@@ -107,6 +113,20 @@ def create_handlers(
             handle=lambda c, msg: command_n(c, msg),
         ),
     ]
+
+    if ntfy_config is not None and reminder_store is not None and tz is not None:
+        _ntfy = ntfy_config
+        _store = reminder_store
+        _tz = tz
+        handlers.append(
+            Handler(
+                name="Command .r",
+                is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".r"),
+                handle=lambda c, msg: command_remind(
+                    c, msg, ntfy_config=_ntfy, store=_store, tz=_tz
+                ),
+            ),
+        )
 
     if eliza_bot_username is not None:
         handlers.append(
