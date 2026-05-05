@@ -6,8 +6,6 @@ services:
     network_mode: host
     env_file:
       - .env.dmi4er4
-    volumes:
-      - ./data-dmi4er4:/data
     restart: unless-stopped
 
   taak-userbot:
@@ -17,8 +15,6 @@ services:
     network_mode: host
     env_file:
       - .env.taak
-    volumes:
-      - ./data-taak:/data
     restart: unless-stopped
 
   charndv-userbot:
@@ -28,6 +24,4 @@ services:
     network_mode: host
     env_file:
       - .env.charndv
-    volumes:
-      - ./data-charndv:/data
     restart: unless-stopped

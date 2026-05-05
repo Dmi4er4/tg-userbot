@@ -11,11 +11,10 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.tl import types
 
-from src_py.application.use_cases.command_remind import NtfyConfig, restore_pending_reminders
+from src_py.application.diary.dead_hand import DeadHand
 from src_py.config import settings
 from src_py.impl.speech_recognition_transcriber import SpeechRecognitionTranscriber
 from src_py.impl.groq_whisper_transcriber import GroqWhisperTranscriber
-from src_py.infrastructure.reminder_store import ReminderStore
 from src_py.presentation.bot import TgUserbot
 from src_py.presentation.handlers import create_handlers
 
@@ -112,27 +111,31 @@ async def _run() -> None:
         transcriber = SpeechRecognitionTranscriber()
         logger.info("GROQ_API_KEY not set; using Google Speech Recognition")
 
-    # ntfy reminders setup
-    ntfy_config = None
-    reminder_store = None
-    tz = None
-    if settings.ntfy_url and settings.ntfy_topic:
-        from zoneinfo import ZoneInfo
-
-        ntfy_config = NtfyConfig(
-            url=settings.ntfy_url,
-            topic=settings.ntfy_topic,
-            user=settings.ntfy_user,
-            password=settings.ntfy_pass,
-        )
-        reminder_store = ReminderStore()
-        tz = ZoneInfo("Europe/Minsk")
-        restored = await restore_pending_reminders(ntfy_config, reminder_store)
-        logger.info("ntfy reminders enabled (topic=%s, restored=%d)", settings.ntfy_topic, restored)
-    else:
-        logger.info("NTFY_URL/NTFY_TOPIC not set; reminders disabled")
-
     eliza_bot_username = settings.eliza_bot_username.strip() or None
+
+    dead_hand: DeadHand | None = None
+    if settings.diary_enabled:
+        taak_raw = settings.diary_taak_peer_id.strip()
+        if not taak_raw:
+            logger.error(
+                "DIARY_ENABLED=true but DIARY_TAAK_PEER_ID empty; refusing to start"
+            )
+            sys.exit(1)
+        try:
+            taak_peer = await client.get_input_entity(int(taak_raw))
+        except ValueError:
+            taak_peer = await client.get_input_entity(taak_raw)
+        me = await client.get_me()
+        self_user_id = int(me.id) if isinstance(me, types.User) else 0
+        dead_hand = DeadHand(
+            duration_seconds=settings.diary_timer_duration_seconds,
+            userbot_channel=userbot_target,
+            userbot_channel_id=channel_id,
+            taak_peer=taak_peer,
+            self_user_id=self_user_id,
+        )
+        logger.info("Diary dead-hand module enabled")
+
     handlers = create_handlers(
         transcriber=transcriber,
         channel_id=userbot_target,
@@ -140,9 +143,7 @@ async def _run() -> None:
         transcribe_disabled_peer_ids=settings.get_transcribe_disabled_peer_ids(),
         yandex_music_token=settings.yandex_music_token,
         eliza_bot_username=eliza_bot_username,
-        ntfy_config=ntfy_config,
-        reminder_store=reminder_store,
-        tz=tz,
+        dead_hand=dead_hand,
     )
 
     bot = TgUserbot(
@@ -153,8 +154,15 @@ async def _run() -> None:
     )
     await bot.start()
 
+    if dead_hand is not None:
+        await dead_hand.start(client)
+
     logger.info("Bot is running. Press Ctrl+C to stop.")
-    await client.run_until_disconnected()
+    try:
+        await client.run_until_disconnected()
+    finally:
+        if dead_hand is not None:
+            await dead_hand.stop()
 
 
 def _handle_signal(sig: int, _frame) -> None:

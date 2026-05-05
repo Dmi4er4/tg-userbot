@@ -12,12 +12,9 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     yandex_music_token: str = ""
     eliza_bot_username: str = ""
-
-    # ntfy configuration for reminders
-    ntfy_url: str = ""
-    ntfy_topic: str = ""
-    ntfy_user: str = ""
-    ntfy_pass: str = ""
+    diary_enabled: bool = False
+    diary_taak_peer_id: str = ""
+    diary_timer_duration_seconds: int = 2592000
 
     def get_userbot_channel_id(self) -> int | None:
         if not self.userbot_channel_id.strip():

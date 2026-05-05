@@ -34,10 +34,10 @@ async def private_transcribe_voice(
             )
 
         cleaned = text.strip()
-        if cleaned:
-            await reply_to(client, message, f"Расшифровка:\n{cleaned}")
-        else:
-            await reply_to(client, message, "Расшифровка: <empty>")
+        if not cleaned:
+            return
+
+        await reply_to(client, message, f"Расшифровка:\n{cleaned}")
 
         try:
             await client(MarkDialogUnreadRequest(

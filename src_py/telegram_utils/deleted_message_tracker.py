@@ -166,6 +166,9 @@ class DeletedMessageTracker:
         return None
 
     async def cache_message(self, message: types.Message) -> None:
+        if not isinstance(message.peer_id, types.PeerUser):
+            return
+
         if (
             isinstance(message.from_id, types.PeerUser)
             and str(message.from_id.user_id) == self._self_user_id
@@ -210,26 +213,15 @@ class DeletedMessageTracker:
     async def _on_raw_update(self, update: object) -> None:
         if isinstance(update, types.UpdateReadHistoryInbox):
             self._handle_read_inbox(update)
-        elif isinstance(update, types.UpdateReadChannelInbox):
-            self._handle_read_channel_inbox(update)
         elif isinstance(update, types.UpdateDeleteMessages):
             await self._handle_delete_messages(update)
-        elif isinstance(update, types.UpdateDeleteChannelMessages):
-            await self._handle_delete_channel_messages(update)
         elif isinstance(update, types.UpdateEditMessage):
             await self._handle_edit_message(update)
-        elif isinstance(update, types.UpdateEditChannelMessage):
-            await self._handle_edit_channel_message(update)
 
     def _handle_read_inbox(self, update: types.UpdateReadHistoryInbox) -> None:
         peer_str = self._peer_to_string(update.peer)
         if peer_str:
             self._read_up_to[peer_str] = update.max_id
-
-    def _handle_read_channel_inbox(
-        self, update: types.UpdateReadChannelInbox
-    ) -> None:
-        self._read_up_to[f"channel:{update.channel_id}"] = update.max_id
 
     async def _handle_delete_messages(
         self, update: types.UpdateDeleteMessages
@@ -249,36 +241,15 @@ class DeletedMessageTracker:
                     logger.exception("[DeletedMessageTracker] forward error")
             self._cache.pop(key, None)
 
-    async def _handle_delete_channel_messages(
-        self, update: types.UpdateDeleteChannelMessages
-    ) -> None:
-        channel_id = str(update.channel_id)
-        if channel_id in self._archived_peer_ids:
-            return
-        for msg_id in update.messages:
-            key = self._make_cache_key(msg_id, channel_id)
-            cached = self._cache.get(key)
-            if not cached:
-                continue
-            if self._is_unread(cached):
-                try:
-                    await self._send_to_saved("\U0001f5d1 Удалённое сообщение", cached)
-                except Exception:
-                    logger.exception("[DeletedMessageTracker] forward error")
-            self._cache.pop(key, None)
-
     async def _handle_edit_message(
         self, update: types.UpdateEditMessage
     ) -> None:
         msg = update.message
         if not isinstance(msg, types.Message):
             return
-        channel_id = (
-            str(msg.peer_id.channel_id)
-            if isinstance(msg.peer_id, types.PeerChannel)
-            else None
-        )
-        key = self._make_cache_key(msg.id, channel_id)
+        if not isinstance(msg.peer_id, types.PeerUser):
+            return
+        key = self._make_cache_key(msg.id, None)
         cached = self._cache.get(key)
         if not cached or not self._is_unread(cached):
             return
@@ -300,11 +271,6 @@ class DeletedMessageTracker:
         cached.media = new_media
         cached.media_description = format_media_message(msg)
         cached.cached_at = time.time()
-
-    async def _handle_edit_channel_message(
-        self, update: types.UpdateEditChannelMessage
-    ) -> None:
-        await self._handle_edit_message(update)
 
     def _is_unread(self, cached: CachedMessage) -> bool:
         if cached.channel_id:
