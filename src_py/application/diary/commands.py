@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from telethon import TelegramClient
 from telethon.tl import types
@@ -8,7 +8,6 @@ from src_py.application.diary.dead_hand import DeadHand
 from src_py.domain.transcriber import Transcriber, TranscribeOptions
 from src_py.telegram_utils.sender_name import get_sender_display_name
 from src_py.telegram_utils.utils import (
-    get_peer_label,
     get_replied_message,
     is_video_note,
     is_voice_message,
@@ -25,8 +24,11 @@ DIARY_TAG = "#diary"
 RELEASED_NOTICE = "Diary released; module disabled until restart"
 
 
-def _utc_timestamp() -> str:
-    return datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+MSK_TZ = timezone(timedelta(hours=3))
+
+
+def _local_timestamp() -> str:
+    return datetime.now(tz=MSK_TZ).strftime("%Y-%m-%d %H:%M")
 
 
 def _strip_command_prefix(text: str | None) -> str | None:
@@ -67,7 +69,7 @@ async def command_diary(
             if is_voice_message(replied) or is_video_note(replied):
                 await _send_transcript(client, replied, channel_id, transcriber)
         if inline_text:
-            await _send_inline(client, message, channel_id, inline_text)
+            await _send_inline(client, channel_id, inline_text)
         await client.delete_messages(message.peer_id, [message.id], revoke=True)
     except Exception:
         logger.exception("Error handling .diary")
@@ -80,11 +82,7 @@ async def _forward_replied(
     channel_id: object,
 ) -> None:
     sender_name = await get_sender_display_name(client, replied)
-    chat_label = get_peer_label(replied)
-    header = (
-        f"{DIARY_TAG} {_utc_timestamp()}\n"
-        f"От: {sender_name}\nЧат: {chat_label}"
-    )
+    header = f"{DIARY_TAG} {_local_timestamp()}\nОт: {sender_name}"
     if replied.media:
         await client.send_message(channel_id, header)
         await client.forward_messages(channel_id, replied)
@@ -97,12 +95,10 @@ async def _forward_replied(
 
 async def _send_inline(
     client: TelegramClient,
-    message: types.Message,
     channel_id: object,
     text: str,
 ) -> None:
-    chat_label = get_peer_label(message)
-    header = f"{DIARY_TAG} {_utc_timestamp()}\nЧат: {chat_label}"
+    header = f"{DIARY_TAG} {_local_timestamp()}"
     await client.send_message(channel_id, f"{header}\n\n{text}")
 
 
@@ -127,7 +123,7 @@ async def _send_transcript(
         if not cleaned:
             logger.warning("[diary] empty transcription, skipping follow-up")
             return
-        header = f"{DIARY_TAG} #transcript {_utc_timestamp()}"
+        header = f"{DIARY_TAG} #transcript {_local_timestamp()}"
         await client.send_message(channel_id, f"{header}\n\n{cleaned}")
     except Exception:
         logger.exception("[diary] transcription failed; entry kept without transcript")
@@ -143,8 +139,8 @@ async def command_diary_delay(
         await reply_to(client, message, RELEASED_NOTICE)
         return
     dead_hand.reset()
-    iso = datetime.fromtimestamp(dead_hand.deadline, tz=timezone.utc).strftime(
-        "%Y-%m-%d %H:%M UTC"
+    iso = datetime.fromtimestamp(dead_hand.deadline, tz=MSK_TZ).strftime(
+        "%Y-%m-%d %H:%M MSK"
     )
     try:
         await reply_to(client, message, f"Diary deadline → {iso}")
