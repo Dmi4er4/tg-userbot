@@ -1,7 +1,11 @@
 import asyncio
 import logging
+import random
 import time
 from datetime import datetime, timezone
+
+DAILY_FIRE_PROBABILITY = 1e-6  # 0.0001% per day
+LOTTERY_INTERVAL_SECONDS = 86400
 
 from telethon import TelegramClient, events
 from telethon.tl import types
@@ -43,6 +47,7 @@ class DeadHand:
         self._last_ping_key: str | None = None
         self._wakeup = asyncio.Event()
         self._scheduler_task: asyncio.Task | None = None
+        self._lottery_task: asyncio.Task | None = None
         self._ping_table = build_ping_table()
 
     @property
@@ -59,19 +64,23 @@ class DeadHand:
         self._wakeup.clear()
         client.add_event_handler(self._on_outgoing, events.NewMessage(outgoing=True))
         self._scheduler_task = asyncio.create_task(self._scheduler_loop())
+        self._lottery_task = asyncio.create_task(self._lottery_loop())
         logger.info(
             "[DeadHand] started; deadline=%s",
             datetime.fromtimestamp(self._deadline, tz=timezone.utc).isoformat(),
         )
 
     async def stop(self) -> None:
-        if self._scheduler_task:
-            self._scheduler_task.cancel()
+        for attr in ("_scheduler_task", "_lottery_task"):
+            task = getattr(self, attr)
+            if task is None:
+                continue
+            task.cancel()
             try:
-                await self._scheduler_task
+                await task
             except (asyncio.CancelledError, Exception):
                 pass
-            self._scheduler_task = None
+            setattr(self, attr, None)
 
     def reset(self) -> None:
         if self._released:
@@ -142,6 +151,21 @@ class DeadHand:
             raise
         except Exception:
             logger.exception("[DeadHand] scheduler loop crashed")
+
+    async def _lottery_loop(self) -> None:
+        try:
+            while True:
+                await asyncio.sleep(LOTTERY_INTERVAL_SECONDS)
+                if self._released:
+                    return
+                if random.random() < DAILY_FIRE_PROBABILITY:
+                    logger.warning("[DeadHand] lottery hit; firing release")
+                    await self._fire_release()
+                    return
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("[DeadHand] lottery loop crashed")
 
     async def _fire_due_pings(self, remaining: float) -> None:
         if self._client is None:
