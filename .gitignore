@@ -15,3 +15,5 @@ data/
 !.env.example
 *.log
 .DS_Store
+cookies/*
+!cookies/README.md

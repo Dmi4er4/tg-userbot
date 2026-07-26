@@ -66,8 +66,27 @@ python -m src_py
 | `DELETED_TRACKER_ENABLED` | No | Enable deleted message tracker (default: `true`) |
 | `ELIZA_BOT_USERNAME` | No | Telegram bot username for `.ai` command (`.ai` disabled if not set) |
 | `TRANSCRIBE_SUMMARY_ENABLED` | No | TL;DR for long transcripts (default `true`; needs `GROQ_API_KEY`) |
-| `YTDLP_COOKIES_FILE` | No | Path to a Netscape cookies file for `.dl` (needed for Instagram / age-gated YouTube) |
+| `YTDLP_COOKIES_FILE` | No | Path to a Netscape cookies file for `.dl` (required for YouTube, see below) |
 | `QUOTE_API_URL` | No | Renderer endpoint for `.q` (default `http://127.0.0.1:3100/generate`, the `quote-api` sidecar) |
+
+### `.dl` and YouTube
+
+YouTube answers datacenter IPs with `Sign in to confirm you're not a bot`. Every
+`player_client` (`tv`, `android_vr`, `mweb`, `web_embedded`, `ios`) was tried against the
+deploy host and all are blocked, and upstream states that PO tokens no longer bypass the
+check either — so cookies are the only working route. Non-YouTube sources (TikTok, X, …)
+work without any of this.
+
+Export cookies in Netscape format from a browser **logged into a throwaway Google
+account** (YouTube may flag accounts used this way), then:
+
+```bash
+scp cookies.txt root@<host>:/root/apps/tg-userbot/cookies/youtube.txt
+# in .env.<name>:  YTDLP_COOKIES_FILE=/app/cookies/youtube.txt
+```
+
+`./cookies/` is mounted at `/app/cookies` and is git-ignored. The mount is read-write on
+purpose: yt-dlp rewrites the jar when it exits.
 
 ### `.q` renderer
 
