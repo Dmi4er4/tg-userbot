@@ -12,7 +12,7 @@ from src_py.telegram_utils.utils import get_replied_message, reply_to
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_QUOTE_API_URL = "http://127.0.0.1:3000/generate"
+DEFAULT_QUOTE_API_URL = "http://127.0.0.1:3100/generate"
 BACKGROUND_COLOR = "#1b1429"
 REQUEST_TIMEOUT_S = 30
 MAX_MESSAGES = 10
