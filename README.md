@@ -67,7 +67,7 @@ python -m src_py
 | `ELIZA_BOT_USERNAME` | No | Telegram bot username for `.ai` command (`.ai` disabled if not set) |
 | `TRANSCRIBE_SUMMARY_ENABLED` | No | TL;DR for long transcripts (default `true`; needs `GROQ_API_KEY`) |
 | `YTDLP_COOKIES_FILE` | No | Path to a Netscape cookies file for `.dl` (needed for Instagram / age-gated YouTube) |
-| `QUOTE_API_URL` | No | Renderer endpoint for `.q` (default `http://127.0.0.1:3000/generate`, the `quote-api` sidecar) |
+| `QUOTE_API_URL` | No | Renderer endpoint for `.q` (default `http://127.0.0.1:3100/generate`, the `quote-api` sidecar) |
 
 ### `.q` renderer
 
@@ -78,7 +78,7 @@ it takes a few minutes:
 
 ```bash
 docker compose build quote-api && docker compose up -d quote-api
-curl -s http://127.0.0.1:3000/health
+curl -s http://127.0.0.1:3100/health
 ```
 
 ## Deployment

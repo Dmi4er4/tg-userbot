@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     transcribe_summary_enabled: bool = True
     groq_api_key: str = ""
     ytdlp_cookies_file: str = ""
-    quote_api_url: str = "http://127.0.0.1:3000/generate"
+    quote_api_url: str = "http://127.0.0.1:3100/generate"
     yandex_music_token: str = ""
     eliza_bot_username: str = ""
     diary_enabled: bool = False

@@ -8,6 +8,9 @@ services:
     network_mode: host
     environment:
       - NODE_ENV=production
+      # 3000 is taken by AdGuard on the host network; keep this in sync
+      # with QUOTE_API_URL.
+      - PORT=3100
     restart: unless-stopped
 
   dmi4er4-userbot:
