@@ -28,6 +28,13 @@ MAX_ERROR_CHARS = 220
 def _short_error(exc: Exception) -> str:
     """yt-dlp errors carry multi-line docs links; keep only the useful part."""
     text = str(exc).replace("ERROR: ", "").strip()
+
+    # YouTube blocks datacenter IPs outright. Every player_client was tried on
+    # the deploy host, so there is nothing to retry — say so instead of dumping
+    # the upstream "sign in" boilerplate.
+    if "not a bot" in text or "Sign in to confirm" in text:
+        return "YouTube блокирует IP сервера. Нужны куки (см. README)."
+
     first_line = text.split("\n")[0].strip()
     # Cut the "Use --cookies-from-browser ... See <url> for ..." tail.
     for marker in (". Use --", ". See ", "Use --cookies"):
