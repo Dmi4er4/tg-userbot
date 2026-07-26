@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     auto_transcribe_peer_ids: str = ""
     transcribe_disabled_peer_ids: str = ""
     deleted_tracker_enabled: bool = True
+    transcribe_summary_enabled: bool = True
     groq_api_key: str = ""
+    ytdlp_cookies_file: str = ""
+    quote_api_url: str = "http://127.0.0.1:3000/generate"
     yandex_music_token: str = ""
     eliza_bot_username: str = ""
     diary_enabled: bool = False

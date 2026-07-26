@@ -85,19 +85,24 @@ async def get_replied_message(
     return fetched if isinstance(fetched, types.Message) else None
 
 
-def _split_text(text: str) -> list[str]:
-    if len(text) <= MAX_TEXT_LENGTH:
+def _utf16_len(text: str) -> int:
+    """Telegram counts entity offsets in UTF-16 code units, not codepoints."""
+    return len(text.encode("utf-16-le")) // 2
+
+
+def _split_text(text: str, max_length: int = MAX_TEXT_LENGTH) -> list[str]:
+    if len(text) <= max_length:
         return [text]
 
     chunks: list[str] = []
     remaining = text
 
-    while len(remaining) > MAX_TEXT_LENGTH:
-        split_index = remaining.rfind("\n", 0, MAX_TEXT_LENGTH)
-        if split_index == -1 or split_index < MAX_TEXT_LENGTH * 0.5:
-            split_index = remaining.rfind(" ", 0, MAX_TEXT_LENGTH)
-        if split_index == -1 or split_index < MAX_TEXT_LENGTH * 0.5:
-            split_index = MAX_TEXT_LENGTH
+    while len(remaining) > max_length:
+        split_index = remaining.rfind("\n", 0, max_length)
+        if split_index == -1 or split_index < max_length * 0.5:
+            split_index = remaining.rfind(" ", 0, max_length)
+        if split_index == -1 or split_index < max_length * 0.5:
+            split_index = max_length
 
         chunks.append(remaining[:split_index].rstrip())
         remaining = remaining[split_index:].lstrip()
@@ -139,5 +144,41 @@ async def send_formatted_reply(
             peer,
             final_text,
             reply_to=reply_to_msg_id if i == 0 else None,
+            formatting_entities=entities,
+        )
+
+
+async def send_transcription_reply(
+    client: TelegramClient,
+    message: types.Message,
+    transcript: str,
+    summary: str | None = None,
+) -> None:
+    """Reply with a transcript; when a summary exists it stays visible above
+    the collapsed transcript quote."""
+    if not summary:
+        await reply_to(client, message, f"Расшифровка:\n{transcript}")
+        return
+
+    head = f"TL;DR:\n{summary}\n\nРасшифровка:\n"
+    max_chunk = MAX_TEXT_LENGTH - len(head)
+    chunks = _split_text(transcript, max_chunk) if max_chunk > 0 else [transcript]
+
+    for i, chunk in enumerate(chunks):
+        prefix = f"{messages.USERBOT_MARK}\n" + (head if i == 0 else "")
+        final_text = prefix + chunk
+
+        entities = [
+            types.MessageEntityBlockquote(
+                offset=_utf16_len(prefix),
+                length=_utf16_len(chunk),
+                collapsed=True,
+            )
+        ]
+
+        await client.send_message(
+            message.peer_id,
+            final_text,
+            reply_to=message.id if i == 0 else None,
             formatting_entities=entities,
         )

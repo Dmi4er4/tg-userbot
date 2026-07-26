@@ -1,4 +1,15 @@
 services:
+  # Renderer for the .q command. The public instance (bot.lyo.su) is unreliable,
+  # so we build LyoSU/quote-api locally and talk to it over the host network.
+  quote-api:
+    build: https://github.com/LyoSU/quote-api.git
+    platform: linux/amd64
+    container_name: quote-api
+    network_mode: host
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
   dmi4er4-userbot:
     build: .
     platform: linux/amd64

@@ -10,6 +10,9 @@ from src_py.telegram_utils.deleted_message_tracker import DeletedMessageTracker
 
 logger = logging.getLogger(__name__)
 
+# The help message is pinned in the userbot channel, so it only lists public
+# commands. The diary / dead-hand commands (.diary, .diary-delay) are
+# deliberately omitted — that module stays undocumented.
 HELP_TEXT = """**📋 Userbot — команды и возможности**
 
 **Команды** (отправляй в любой чат):
@@ -23,9 +26,12 @@ HELP_TEXT = """**📋 Userbot — команды и возможности**
 `.n <текст>` — добавить дисклеймер GTA 5 RP
 `.ai <вопрос>` — задать вопрос AI (Gemini), можно ответом на сообщение
 `.ym <ссылка>` — скачать трек из Яндекс Музыки в MP3
+`.dl <url>` — скачать видео (YouTube/TikTok/X/…), `.dl -a <url>` — только MP3
+`.q [N]` — цитата-стикер из сообщения (ответом), N — сколько сообщений подряд
 
 **Автоматические функции:**
 • Транскрибация голосовых в личных сообщениях
+• TL;DR для длинных расшифровок (от 600 символов)
 • Транскрибация в выбранных группах (AUTO\\_TRANSCRIBE\\_PEER\\_IDS)
 • Сохранение исчезающих медиа (#disappearing)
 • Трекинг удалённых/отредактированных сообщений (#deleted / #edited)"""

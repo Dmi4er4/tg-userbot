@@ -14,6 +14,7 @@ from telethon.tl import types
 from src_py.application.diary.dead_hand import DeadHand
 from src_py.config import settings
 from src_py.impl.speech_recognition_transcriber import SpeechRecognitionTranscriber
+from src_py.impl.groq_summarizer import GroqSummarizer
 from src_py.impl.groq_whisper_transcriber import GroqWhisperTranscriber
 from src_py.presentation.bot import TgUserbot
 from src_py.presentation.handlers import create_handlers
@@ -111,6 +112,13 @@ async def _run() -> None:
         transcriber = SpeechRecognitionTranscriber()
         logger.info("GROQ_API_KEY not set; using Google Speech Recognition")
 
+    summarizer: GroqSummarizer | None = None
+    if settings.transcribe_summary_enabled and settings.groq_api_key:
+        summarizer = GroqSummarizer(settings.groq_api_key)
+        logger.info("Transcription TL;DR enabled (Groq)")
+    elif settings.transcribe_summary_enabled:
+        logger.info("GROQ_API_KEY not set; transcription TL;DR disabled")
+
     eliza_bot_username = settings.eliza_bot_username.strip() or None
 
     dead_hand: DeadHand | None = None
@@ -144,6 +152,9 @@ async def _run() -> None:
         yandex_music_token=settings.yandex_music_token,
         eliza_bot_username=eliza_bot_username,
         dead_hand=dead_hand,
+        summarizer=summarizer,
+        ytdlp_cookies_file=settings.ytdlp_cookies_file.strip(),
+        quote_api_url=settings.quote_api_url.strip(),
     )
 
     bot = TgUserbot(

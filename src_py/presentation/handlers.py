@@ -7,7 +7,9 @@ from telethon.tl import types
 from src_py.application.diary.commands import command_diary, command_diary_delay
 from src_py.application.diary.dead_hand import DeadHand
 from src_py.application.use_cases.command_ai import command_ai
+from src_py.application.use_cases.command_dl import command_dl
 from src_py.application.use_cases.command_google import command_google
+from src_py.application.use_cases.command_quote import DEFAULT_QUOTE_API_URL, command_quote
 from src_py.application.use_cases.command_yandex_music import command_yandex_music
 from src_py.application.use_cases.command_id import command_id
 from src_py.application.use_cases.command_n import command_n
@@ -18,6 +20,7 @@ from src_py.application.use_cases.command_transcribe import command_transcribe_v
 from src_py.application.use_cases.command_wiki import command_wiki
 from src_py.application.use_cases.disappearing_media import forward_disappearing_media, is_disappearing_media
 from src_py.application.use_cases.private_transcribe import private_transcribe_voice
+from src_py.domain.summarizer import Summarizer
 from src_py.domain.transcriber import Transcriber
 from src_py.telegram_utils.utils import get_peer_id, is_private_peer, is_video_note, is_voice_message
 
@@ -49,6 +52,9 @@ def create_handlers(
     yandex_music_token: str = "",
     eliza_bot_username: str | None = None,
     dead_hand: DeadHand | None = None,
+    summarizer: Summarizer | None = None,
+    ytdlp_cookies_file: str = "",
+    quote_api_url: str = DEFAULT_QUOTE_API_URL,
 ) -> list[Handler]:
     handlers = [
         Handler(
@@ -64,14 +70,26 @@ def create_handlers(
                 msg, auto_transcribe_peer_ids, transcribe_disabled_peer_ids
             ),
             handle=lambda c, msg: private_transcribe_voice(
-                c, msg, transcriber=transcriber
+                c, msg, transcriber=transcriber, summarizer=summarizer
             ),
         ),
         Handler(
             name="Command .convert",
             is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".convert"),
             handle=lambda c, msg: command_transcribe_voice(
-                c, msg, transcriber=transcriber
+                c, msg, transcriber=transcriber, summarizer=summarizer
+            ),
+        ),
+        Handler(
+            name="Command .q",
+            is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".q"),
+            handle=lambda c, msg: command_quote(c, msg, api_url=quote_api_url),
+        ),
+        Handler(
+            name="Command .dl",
+            is_triggered=lambda _c, msg, s: _self_command_trigger(msg, s, ".dl"),
+            handle=lambda c, msg: command_dl(
+                c, msg, cookies_file=ytdlp_cookies_file
             ),
         ),
         Handler(

@@ -7,3 +7,4 @@ SpeechRecognition
 pydub
 Pillow
 yandex-music
+yt-dlp
