@@ -22,6 +22,23 @@ USAGE = "Использование: `.dl <url>` — видео, `.dl -a <url>` 
 
 AUDIO_FLAGS = {"-a", "-audio", "audio", "mp3"}
 
+MAX_ERROR_CHARS = 220
+
+
+def _short_error(exc: Exception) -> str:
+    """yt-dlp errors carry multi-line docs links; keep only the useful part."""
+    text = str(exc).replace("ERROR: ", "").strip()
+    first_line = text.split("\n")[0].strip()
+    # Cut the "Use --cookies-from-browser ... See <url> for ..." tail.
+    for marker in (". Use --", ". See ", "Use --cookies"):
+        idx = first_line.find(marker)
+        if idx > 0:
+            first_line = first_line[:idx]
+            break
+    if len(first_line) > MAX_ERROR_CHARS:
+        first_line = first_line[:MAX_ERROR_CHARS].rstrip() + "…"
+    return first_line or "неизвестная ошибка"
+
 
 def _extract_url(message: types.Message | None) -> str | None:
     if message is None:
@@ -149,7 +166,9 @@ async def command_dl(
             )
         except Exception as exc:
             logger.exception("yt-dlp download failed for %s", url)
-            await client.edit_message(status, f"Не удалось скачать: {exc}")
+            await client.edit_message(
+                status, f"Не удалось скачать: {_short_error(exc)}"
+            )
             return
 
         file_path = _pick_downloaded_file(target_dir)
