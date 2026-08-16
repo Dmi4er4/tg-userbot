@@ -32,6 +32,7 @@ class Handler:
         [TelegramClient, types.Message, str | None], Awaitable[bool]
     ]
     handle: Callable[[TelegramClient, types.Message], Awaitable[None]]
+    preserve_unread: bool = False
 
 
 def _is_sender_self(message: types.Message, self_user_id: str | None) -> bool:
@@ -72,6 +73,7 @@ def create_handlers(
             handle=lambda c, msg: private_transcribe_voice(
                 c, msg, transcriber=transcriber, summarizer=summarizer
             ),
+            preserve_unread=True,
         ),
         Handler(
             name="Command .convert",

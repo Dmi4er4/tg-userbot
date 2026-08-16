@@ -2,7 +2,10 @@ import logging
 
 from telethon import TelegramClient, events
 from telethon.tl import types
-from telethon.tl.functions.messages import UpdatePinnedMessageRequest
+from telethon.tl.functions.messages import (
+    MarkDialogUnreadRequest,
+    UpdatePinnedMessageRequest,
+)
 from telethon.tl.types import InputMessagesFilterPinned
 
 from src_py.presentation.handlers import Handler
@@ -147,7 +150,24 @@ class TgUserbot:
                 if triggered:
                     logger.info("[handler:%s] started", h.name)
                     await h.handle(self._client, message)
+                    if h.preserve_unread:
+                        await self._preserve_dialog_unread(message)
                     logger.info("[handler:%s] finished", h.name)
                     break
             except Exception:
                 logger.exception("[handler:%s] errored", h.name)
+
+    async def _preserve_dialog_unread(self, message: types.Message) -> None:
+        try:
+            await self._client(
+                MarkDialogUnreadRequest(
+                    peer=message.peer_id,
+                    unread=True,
+                )
+            )
+        except Exception:
+            logger.exception("Failed to mark dialog as unread")
+            return
+
+        if self._deleted_tracker:
+            self._deleted_tracker.preserve_unread(message)

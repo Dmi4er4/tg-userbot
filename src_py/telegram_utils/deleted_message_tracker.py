@@ -118,6 +118,10 @@ class DeletedMessageTracker:
         self._channel_id = channel_id
         self._cache: dict[str, CachedMessage] = {}
         self._read_up_to: dict[str, int] = {}
+        # MarkDialogUnread changes the dialog badge but cannot move Telegram's
+        # read-history max_id backwards. Keep the auto-transcribed message as a
+        # local unread override until the dialog's unread mark is cleared.
+        self._preserved_unread: dict[str, set[int]] = {}
         self._evict_task: asyncio.Task | None = None
         self._refresh_task: asyncio.Task | None = None
         self._archived_peer_ids: set[str] = set()
@@ -213,6 +217,8 @@ class DeletedMessageTracker:
     async def _on_raw_update(self, update: object) -> None:
         if isinstance(update, types.UpdateReadHistoryInbox):
             self._handle_read_inbox(update)
+        elif isinstance(update, types.UpdateDialogUnreadMark):
+            self._handle_dialog_unread_mark(update)
         elif isinstance(update, types.UpdateDeleteMessages):
             await self._handle_delete_messages(update)
         elif isinstance(update, types.UpdateEditMessage):
@@ -222,6 +228,22 @@ class DeletedMessageTracker:
         peer_str = self._peer_to_string(update.peer)
         if peer_str:
             self._read_up_to[peer_str] = update.max_id
+
+    def _handle_dialog_unread_mark(
+        self, update: types.UpdateDialogUnreadMark
+    ) -> None:
+        if update.unread or not isinstance(update.peer, types.DialogPeer):
+            return
+        peer_str = self._peer_to_string(update.peer.peer)
+        if peer_str:
+            self._preserved_unread.pop(peer_str, None)
+
+    def preserve_unread(self, message: types.Message) -> None:
+        """Keep an auto-processed message logically unread for this tracker."""
+        peer_str = self._peer_to_string(message.peer_id)
+        if not peer_str:
+            return
+        self._preserved_unread.setdefault(peer_str, set()).add(message.id)
 
     async def _handle_delete_messages(
         self, update: types.UpdateDeleteMessages
@@ -233,6 +255,7 @@ class DeletedMessageTracker:
                 continue
             if self._should_skip_peer(cached.peer):
                 self._cache.pop(key, None)
+                self._forget_preserved_unread(cached)
                 continue
             if self._is_unread(cached):
                 try:
@@ -240,6 +263,7 @@ class DeletedMessageTracker:
                 except Exception:
                     logger.exception("[DeletedMessageTracker] forward error")
             self._cache.pop(key, None)
+            self._forget_preserved_unread(cached)
 
     async def _handle_edit_message(
         self, update: types.UpdateEditMessage
@@ -279,10 +303,23 @@ class DeletedMessageTracker:
             peer_str = self._peer_to_string(cached.peer)
         if not peer_str:
             return True
+        if cached.message_id in self._preserved_unread.get(peer_str, set()):
+            return True
         max_read = self._read_up_to.get(peer_str)
         if max_read is None:
             return True
         return cached.message_id > max_read
+
+    def _forget_preserved_unread(self, cached: CachedMessage) -> None:
+        peer_str = self._peer_to_string(cached.peer)
+        if not peer_str:
+            return
+        message_ids = self._preserved_unread.get(peer_str)
+        if not message_ids:
+            return
+        message_ids.discard(cached.message_id)
+        if not message_ids:
+            self._preserved_unread.pop(peer_str, None)
 
     def _build_header(
         self, title: str, cached: CachedMessage, tag: str = "deleted"
@@ -458,7 +495,8 @@ class DeletedMessageTracker:
             now = time.time()
             expired = [k for k, v in self._cache.items() if now - v.cached_at > CACHE_TTL_S]
             for k in expired:
-                del self._cache[k]
+                cached = self._cache.pop(k)
+                self._forget_preserved_unread(cached)
             if expired:
                 logger.info(
                     "[DeletedMessageTracker] evicted %d expired entries, %d remaining",
