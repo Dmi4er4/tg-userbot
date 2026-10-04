@@ -19,6 +19,11 @@ from src_py.telegram_utils.utils import (
 
 logger = logging.getLogger(__name__)
 
+NO_TRANSCRIPT_RESULTS = frozenset({
+    "(ошибка транскрибации)",
+    "(не удалось распознать речь)",
+})
+
 
 async def private_transcribe_voice(
     client: TelegramClient,
@@ -26,19 +31,25 @@ async def private_transcribe_voice(
     *,
     transcriber: Transcriber,
     summarizer: Summarizer | None = None,
-) -> None:
+) -> bool:
     if not is_voice_message(message) and not is_video_note(message):
-        return
+        return False
 
     try:
         text = await transcribe_voice_message(client, message, transcriber=transcriber)
 
         cleaned = text.strip()
         if not cleaned:
-            return
+            return False
+
+        if cleaned in NO_TRANSCRIPT_RESULTS:
+            await send_transcription_reply(client, message, cleaned)
+            return False
 
         summary = await build_summary(cleaned, summarizer=summarizer)
         await send_transcription_reply(client, message, cleaned, summary)
+        return True
     except Exception:
         logger.exception("Error transcribing private voice/videonote")
         await reply_to(client, message, messages.ERROR)
+        return False

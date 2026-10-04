@@ -149,8 +149,8 @@ class TgUserbot:
                 )
                 if triggered:
                     logger.info("[handler:%s] started", h.name)
-                    await h.handle(self._client, message)
-                    if h.preserve_unread:
+                    handled = await h.handle(self._client, message)
+                    if h.preserve_unread and handled is True:
                         await self._preserve_dialog_unread(message)
                     logger.info("[handler:%s] finished", h.name)
                     break
@@ -158,7 +158,31 @@ class TgUserbot:
                 logger.exception("[handler:%s] errored", h.name)
 
     async def _preserve_dialog_unread(self, message: types.Message) -> None:
+        if message.out is not False:
+            return
+        if (
+            isinstance(message.from_id, types.PeerUser)
+            and str(message.from_id.user_id) == self._self_user_id
+        ):
+            return
+
+        # Keep the original incoming message eligible for deleted-message
+        # tracking even when our reply becomes the last message in the dialog.
+        if self._deleted_tracker:
+            self._deleted_tracker.preserve_unread(message)
+
         try:
+            latest = await self._client.get_messages(message.peer_id, limit=1)
+            if isinstance(latest, list):
+                latest = latest[0] if latest else None
+            if not isinstance(latest, types.Message) or latest.out is not False:
+                return
+            if (
+                isinstance(latest.from_id, types.PeerUser)
+                and str(latest.from_id.user_id) == self._self_user_id
+            ):
+                return
+
             await self._client(
                 MarkDialogUnreadRequest(
                     peer=message.peer_id,
@@ -166,8 +190,4 @@ class TgUserbot:
                 )
             )
         except Exception:
-            logger.exception("Failed to mark dialog as unread")
-            return
-
-        if self._deleted_tracker:
-            self._deleted_tracker.preserve_unread(message)
+            logger.exception("Failed to check or mark dialog as unread")

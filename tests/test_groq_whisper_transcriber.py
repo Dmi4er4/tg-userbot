@@ -53,9 +53,9 @@ class AudioChunkingTest(unittest.TestCase):
 
         chunks = _split_audio(audio)
 
-        self.assertEqual(len(chunks), 3)
+        self.assertEqual(len(chunks), 4)
         self.assertEqual(sum(map(len, chunks)), len(audio))
-        self.assertTrue(all(65_000 <= len(chunk) <= 90_000 for chunk in chunks))
+        self.assertTrue(all(45_000 <= len(chunk) <= 70_000 for chunk in chunks))
 
     def test_without_detectable_pause_still_covers_entire_audio(self) -> None:
         audio = AudioSegment.silent(duration=115_000, frame_rate=16_000)

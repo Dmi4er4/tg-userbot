@@ -31,7 +31,7 @@ class Handler:
     is_triggered: Callable[
         [TelegramClient, types.Message, str | None], Awaitable[bool]
     ]
-    handle: Callable[[TelegramClient, types.Message], Awaitable[None]]
+    handle: Callable[[TelegramClient, types.Message], Awaitable[bool | None]]
     preserve_unread: bool = False
 
 
