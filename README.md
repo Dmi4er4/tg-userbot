@@ -4,7 +4,7 @@ Telegram userbot with voice transcription, deleted message tracking, and utility
 
 ## Features
 
-- **Auto-transcription** — automatically transcribes voice messages in private chats and configurable group chats (via SpeechRecognition)
+- **Auto-transcription** — automatically transcribes voice messages and video notes in private chats and configurable group chats; with Groq, recordings over 90 seconds are split near pauses into roughly 90-second chunks, processed up to three at a time, and joined in order
 - **Transcript TL;DR** — transcripts of 600+ characters get a short summary (Groq LLM) shown above the collapsed full text
 - `.convert` — transcribe a replied voice message on demand
 - `.dl [url]` — download a video via yt-dlp (YouTube/TikTok/X/…) and send it to the chat; `.dl -a [url]` extracts MP3 audio
@@ -61,6 +61,7 @@ python -m src_py
 | `TG_API_HASH` | Yes | Telegram API hash |
 | `TG_SESSION` | Yes | Session string (run `python -m src_py login` to generate) |
 | `USERBOT_CHANNEL_ID` | No | Channel ID for saving messages (default: Saved Messages) |
+| `USERBOT_MARK` | No | Prefix shown above userbot replies (default: `dmi4er4`; Compose sets `charndv` and `taak` for the other accounts) |
 | `AUTO_TRANSCRIBE_PEER_IDS` | No | Comma-separated peer IDs to auto-transcribe in |
 | `TRANSCRIBE_DISABLED_PEER_IDS` | No | Comma-separated peer IDs where auto-transcription is disabled |
 | `DELETED_TRACKER_ENABLED` | No | Enable deleted message tracker (default: `true`) |

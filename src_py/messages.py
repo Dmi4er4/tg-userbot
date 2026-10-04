@@ -1,3 +1,6 @@
+import os
+
+
 NOT_VOICE_REPLY = "Ответьте командой .convert на голосовое сообщение."
 ERROR = "Произошла ошибка при обработке запроса."
-USERBOT_MARK = "dmi4er4-bot"
+USERBOT_MARK = os.environ.get("USERBOT_MARK") or "dmi4er4"
