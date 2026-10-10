@@ -1,0 +1,112 @@
+{
+  "checked_at": "2026-10-10T23:44:23.744751+00:00",
+  "policy": "Suppress subtitle/outro phrases even when spoken; preserve other speech",
+  "cases": 33,
+  "required_speech_cases": 13,
+  "allowed_stop_phrase_cases": 6,
+  "non_speech_cases": 14,
+  "synthetic_cases": 27,
+  "public_environmental_recordings": 6,
+  "quiet_required_speech_cases": 5,
+  "quiet_attenuation_db": 35,
+  "short_answer_cases": 6,
+  "filter_config": {
+    "possible_speech": 0.15,
+    "confident_speech": 0.35,
+    "speech_pad_seconds": 0.3,
+    "suppress_boilerplate": true
+  },
+  "recorded_response_replay": {
+    "baseline": {
+      "required_speech_dropped": [
+        "music_word.ogg",
+        "music_word_quiet.ogg"
+      ],
+      "false_non_speech_replies": [
+        "esc10_rain.ogg",
+        "esc10_helicopter.ogg",
+        "esc10_sea_waves.ogg"
+      ],
+      "intentionally_suppressed_stop_phrase_cases": 6
+    },
+    "vad_only": {
+      "required_speech_dropped": [],
+      "false_non_speech_replies": [
+        "esc10_clock_tick.ogg"
+      ],
+      "intentionally_suppressed_stop_phrase_cases": 0
+    },
+    "new": {
+      "required_speech_dropped": [],
+      "false_non_speech_replies": [],
+      "intentionally_suppressed_stop_phrase_cases": 6
+    }
+  },
+  "fresh_groq_run": {
+    "baseline": {
+      "required_speech_dropped": [
+        "music_word.ogg",
+        "music_word_quiet.ogg"
+      ],
+      "false_non_speech_replies": [
+        "esc10_rain.ogg",
+        "esc10_helicopter.ogg",
+        "esc10_sea_waves.ogg"
+      ],
+      "intentionally_suppressed_stop_phrase_cases": 6
+    },
+    "vad_only": {
+      "required_speech_dropped": [],
+      "false_non_speech_replies": [
+        "esc10_clock_tick.ogg"
+      ],
+      "intentionally_suppressed_stop_phrase_cases": 0
+    },
+    "new": {
+      "required_speech_dropped": [],
+      "false_non_speech_replies": [],
+      "intentionally_suppressed_stop_phrase_cases": 6
+    }
+  },
+  "clock_tick_regression": "resolved",
+  "groq_turbo_observed_no_speech_prob_values": [
+    0
+  ],
+  "tests": {
+    "macos_python_3_13": 61,
+    "isolated_linux_amd64_python_3_12": 61
+  },
+  "end_to_end": {
+    "checked_at": "2026-10-10T23:43:00.393068+00:00",
+    "cases": [
+      {
+        "file": "esc10_clock_tick.ogg",
+        "expected": "",
+        "text": ""
+      },
+      {
+        "file": "yes_quiet.ogg",
+        "expected": "Да.",
+        "text": "Да."
+      },
+      {
+        "file": "thanks_quiet.ogg",
+        "expected": "",
+        "text": ""
+      }
+    ]
+  },
+  "source_sha256": {
+    "requirements.txt": "d534c503645de763ff171f9e027d44a17f045f0e1e3a97cd6e8bbe7ae581ed6d",
+    "src_py/impl/groq_whisper_transcriber.py": "a467f3ddfb20e56bb6794a18536a05b1a45d8a6a13597cf0c78980be735f6419",
+    "src_py/impl/speech_activity.py": "43bd07a37fa2a94bab388c130696a8748eeae8bd1a1abc82b2f92e683625caf6",
+    "src_py/impl/transcription_filter.py": "91eed14a43ac2dc459e9f3c7f2cfdc91137c3d0fe80efcf9f431a5462b4a4181",
+    "src_py/impl/transcription_artifacts.py": "8668f6a3658502610b1d32f57747c23425438d338fac1510486442fe951d0066",
+    "tests/test_groq_whisper_transcriber.py": "26446520bc32bfd9e6a41af6f8406595c9e4fa5869fcf845ffd0dc1fa37747b8",
+    "tests/test_speech_activity.py": "9f2c80c5d7061d6c451e03d24edf47a09c5aff2d56c7e85b53f789dee68d20d9",
+    "tests/test_transcription_filter.py": "9002535b1883e803b5d04ecda64b71f5cd7edde7f4d6efbbaf1d5ffcbc1fcd38"
+  },
+  "deployment": "not deployed",
+  "validation_status": "all_test_cases_match_current_policy",
+  "word_error_scoring_note": "Raw benchmark edit distance counts numeral 5 versus spoken пять as a difference; acceptance comparison normalizes this formatting."
+}

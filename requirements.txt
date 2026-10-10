@@ -9,3 +9,4 @@ Pillow
 yandex-music
 aiofiles
 yt-dlp
+silero-vad-lite==0.4.0

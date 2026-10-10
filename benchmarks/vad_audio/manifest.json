@@ -1,0 +1,264 @@
+[
+  {
+    "file": "yes.ogg",
+    "category": "speech",
+    "expected": "Да.",
+    "duration_seconds": 0.678,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "yes_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Да.",
+    "duration_seconds": 0.678,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "no.ogg",
+    "category": "speech",
+    "expected": "Нет.",
+    "duration_seconds": 0.668,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "no_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Нет.",
+    "duration_seconds": 0.668,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "stop.ogg",
+    "category": "speech",
+    "expected": "Стоп.",
+    "duration_seconds": 0.784,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "stop_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Стоп.",
+    "duration_seconds": 0.784,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "thanks.ogg",
+    "category": "speech",
+    "expected": "Спасибо за внимание!",
+    "duration_seconds": 1.678,
+    "source": "macOS Milena TTS",
+    "expected_after_filter": ""
+  },
+  {
+    "file": "thanks_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Спасибо за внимание!",
+    "duration_seconds": 1.678,
+    "source": "macOS Milena TTS",
+    "expected_after_filter": ""
+  },
+  {
+    "file": "subscribe.ogg",
+    "category": "speech",
+    "expected": "Подписывайтесь на мой канал!",
+    "duration_seconds": 1.901,
+    "source": "macOS Milena TTS",
+    "expected_after_filter": ""
+  },
+  {
+    "file": "subscribe_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Подписывайтесь на мой канал!",
+    "duration_seconds": 1.901,
+    "source": "macOS Milena TTS",
+    "expected_after_filter": ""
+  },
+  {
+    "file": "credits.ogg",
+    "category": "speech",
+    "expected": "Субтитры сделал Дима.",
+    "duration_seconds": 1.713,
+    "source": "macOS Milena TTS",
+    "expected_after_filter": ""
+  },
+  {
+    "file": "credits_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Субтитры сделал Дима.",
+    "duration_seconds": 1.713,
+    "source": "macOS Milena TTS",
+    "expected_after_filter": ""
+  },
+  {
+    "file": "ordinary.ogg",
+    "category": "speech",
+    "expected": "Встречаемся завтра в пять. Я принесу документы.",
+    "duration_seconds": 3.614,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "ordinary_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Встречаемся завтра в пять. Я принесу документы.",
+    "duration_seconds": 3.614,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "music_word.ogg",
+    "category": "speech",
+    "expected": "Музыка.",
+    "duration_seconds": 0.9,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "music_word_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "Музыка.",
+    "duration_seconds": 0.9,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "long_pauses.ogg",
+    "category": "mixed",
+    "expected": "Да. Спасибо за внимание!",
+    "duration_seconds": 91.756,
+    "source": "macOS Milena TTS",
+    "expected_after_filter": "Да."
+  },
+  {
+    "file": "speech_at_end.ogg",
+    "category": "mixed",
+    "expected": "Нет.",
+    "duration_seconds": 50.368,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "silence_short.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 0.8,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "silence_long.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 65.0,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "white_noise.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 8.0,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "quiet_noise.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 8.0,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "wind.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 16.0,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "hum.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 5.0,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "clicks.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 6.0,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "instrumental.ogg",
+    "category": "non_speech",
+    "expected": "",
+    "duration_seconds": 4.0,
+    "source": "generated non-speech"
+  },
+  {
+    "file": "speech_in_noise.ogg",
+    "category": "speech_in_noise",
+    "expected": "Встречаемся завтра в пять. Я принесу документы.",
+    "duration_seconds": 3.314,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "esc10_rain.ogg",
+    "category": "public_non_speech",
+    "expected": "",
+    "duration_seconds": 5.0,
+    "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-17367-A-10.wav",
+    "source_sha256": "d732acd2e0c7c40405968010f49f250740c86998fc416eff2ed5330fc8c89dea",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "attribution": "- [1-17367-A.ogg]: clip derived from unlocki door to mod rain.wav (http://www.freesound.org/people/cognito%20perceptu/sounds/17367/) by cognito perceptu [CC0]",
+    "modification": "resampled to mono 16kHz and encoded as Opus"
+  },
+  {
+    "file": "esc10_clock_tick.ogg",
+    "category": "public_non_speech",
+    "expected": "",
+    "duration_seconds": 5.0,
+    "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-21934-A-38.wav",
+    "source_sha256": "8d26e40e0e382b0d2d7f6dafcb132cfe703ee3f7f32780e878fdb5a1aaffcc28",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "attribution": "- [1-21934-A.ogg]: clip derived from 20060810.peters.clock.01.flac (http://www.freesound.org/people/dobroide/sounds/21934/) by dobroide [CC-BY]",
+    "modification": "resampled to mono 16kHz and encoded as Opus"
+  },
+  {
+    "file": "esc10_crackling_fire.ogg",
+    "category": "public_non_speech",
+    "expected": "",
+    "duration_seconds": 5.0,
+    "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-17150-A-12.wav",
+    "source_sha256": "3d278bc2034dfb83881491a8eec97de6f1239f0a5b8a7c02be46b5aab0a51609",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "attribution": "- [1-17150-A.ogg]: clip derived from lg fire5.wav (http://www.freesound.org/people/lgarrett/sounds/17150/) by lgarrett [CC-BY]",
+    "modification": "resampled to mono 16kHz and encoded as Opus"
+  },
+  {
+    "file": "esc10_helicopter.ogg",
+    "category": "public_non_speech",
+    "expected": "",
+    "duration_seconds": 5.0,
+    "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-172649-A-40.wav",
+    "source_sha256": "23ad50d792907e1caa894e6e31bb623938ae0417606b830b433da11ca2ecb2f4",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "attribution": "- [1-172649-A.ogg]: clip derived from Small Helicopter Takes Off (http://www.freesound.org/people/senorstudy/sounds/172649/) by senorstudy [CC0]",
+    "modification": "resampled to mono 16kHz and encoded as Opus"
+  },
+  {
+    "file": "esc10_dog.ogg",
+    "category": "public_non_speech",
+    "expected": "",
+    "duration_seconds": 5.0,
+    "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-100032-A-0.wav",
+    "source_sha256": "f40a849a2375c8c63312a73dd2dd6c74007301fcc21b4be2ece29a642831e3d8",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "attribution": "- [1-100032-A.ogg]: clip derived from rose_bark.wav (http://www.freesound.org/people/nfrae/sounds/100032/) by nfrae [CC0]",
+    "modification": "resampled to mono 16kHz and encoded as Opus"
+  },
+  {
+    "file": "esc10_sea_waves.ogg",
+    "category": "public_non_speech",
+    "expected": "",
+    "duration_seconds": 5.0,
+    "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-28135-A-11.wav",
+    "source_sha256": "4d04b84d490c4d9ab28a52c4c96d1b14c2f8b132fc4be38166197ae814920742",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "attribution": "- [1-28135-A.ogg]: clip derived from Branding_kort.wav (http://www.freesound.org/people/HerbertBoland/sounds/28135/) by HerbertBoland [CC-BY]",
+    "modification": "resampled to mono 16kHz and encoded as Opus"
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-10-10T23:43:00.393068+00:00",
+  "cases": [
+    {
+      "file": "esc10_clock_tick.ogg",
+      "expected": "",
+      "text": ""
+    },
+    {
+      "file": "yes_quiet.ogg",
+      "expected": "Да.",
+      "text": "Да."
+    },
+    {
+      "file": "thanks_quiet.ogg",
+      "expected": "",
+      "text": ""
+    }
+  ]
+}
