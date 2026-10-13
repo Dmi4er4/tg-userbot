@@ -4,8 +4,7 @@ import logging
 import math
 
 from src_py.impl.speech_activity import (
-    CONFIDENT_SPEECH,
-    POSSIBLE_SPEECH,
+    MIN_SPEECH_SECONDS,
     SpeechActivity,
 )
 
@@ -47,18 +46,16 @@ def filter_by_audio(payload: dict, activity: SpeechActivity) -> str:
         # Whisper can extend the last segment into its 30s padding. Clip its
         # end to the real audio; otherwise a hallucinated tail could inherit
         # evidence from unrelated speech earlier in the chunk.
-        speech = activity.probability(
-            min(start, activity.duration), min(end, activity.duration)
-        )
-        no_audio_evidence = speech < POSSIBLE_SPEECH
-        weak_audio_and_decoder = (
-            speech < CONFIDENT_SPEECH and no_speech > 0.6 and logprob < -1.0
-        )
-        if no_audio_evidence or weak_audio_and_decoder:
+        audio_start, audio_end = min(start, activity.duration), min(end, activity.duration)
+        speech = activity.probability(audio_start, audio_end)
+        speech_seconds = activity.speech_duration(audio_start, audio_end)
+        # Groq may return no_speech_prob=0 for noise, with high decoder
+        # confidence. Neither can replace independent sustained audio evidence.
+        if speech_seconds < MIN_SPEECH_SECONDS:
             logger.info(
                 "Suppressed non-speech segment %.2f-%.2fs: vad=%.3f "
-                "no_speech=%.3f logprob=%.3f",
-                start, end, speech, no_speech, logprob,
+                "speech_duration=%.3f no_speech=%.3f logprob=%.3f",
+                start, end, speech, speech_seconds, no_speech, logprob,
             )
             continue
         kept.append(text)

@@ -41,6 +41,7 @@ def generate() -> None:
             "credits": "Субтитры сделал Дима.",
             "ordinary": "Встречаемся завтра в пять. Я принесу документы.",
             "music_word": "Музыка.",
+            "short_a": "А?",
         }
         voices = {}
         for name, phrase in phrases.items():
@@ -51,8 +52,9 @@ def generate() -> None:
                 raise RuntimeError(f"TTS produced no speech for {name}; fixtures are invalid")
             voices[name] = audio
             filtered = "" if name in ("thanks", "subscribe", "credits") else None
-            save(name, silence(150) + audio + silence(150), "speech", phrase, filtered)
-            save(name + "_quiet", silence(150) + (audio - 35) + silence(150), "quiet_speech", phrase, filtered)
+            padding = 0 if name == "short_a" else 150
+            save(name, silence(padding) + audio + silence(padding), "speech", phrase, filtered)
+            save(name + "_quiet", silence(padding) + (audio - 35) + silence(padding), "quiet_speech", phrase, filtered)
         save("long_pauses", silence(20_000) + voices["yes"] + silence(50_000)
              + voices["thanks"] + silence(20_000), "mixed", "Да. Спасибо за внимание!", "Да.")
         save("speech_at_end", silence(50_000) + voices["no"], "mixed", "Нет.")

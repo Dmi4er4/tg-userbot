@@ -10,10 +10,12 @@ from pydub import AudioSegment
 SAMPLE_RATE = 16_000
 WINDOW_SAMPLES = 512
 FRAME_SECONDS = WINDOW_SAMPLES / SAMPLE_RATE
-# A deliberately permissive gate: a single possible speech frame keeps a chunk.
-# No minimum utterance length, so short answers are not discarded.
-POSSIBLE_SPEECH = 0.15
-CONFIDENT_SPEECH = 0.35
+# A single frame can be a click or microphone noise. Require a sustained
+# speech interval at Silero's default threshold. A 120ms minimum keeps short
+# replies, including a quiet vowel ending at the recording boundary.
+# https://github.com/snakers4/silero-vad/blob/master/src/silero_vad/utils_vad.py
+CONFIDENT_SPEECH = 0.5
+MIN_SPEECH_SECONDS = 0.12
 SPEECH_PAD_SECONDS = 0.3
 
 
@@ -22,18 +24,38 @@ class SpeechActivity:
     duration: float
     probabilities: tuple[float, ...]
 
-    def probability(self, start: float = 0, end: float | None = None) -> float:
+    def _frame_bounds(self, start: float, end: float | None) -> tuple[int, int]:
         end = self.duration if end is None else end
         left = max(0, math.floor((start - SPEECH_PAD_SECONDS) / FRAME_SECONDS))
         right = min(
             len(self.probabilities),
+            math.ceil(self.duration / FRAME_SECONDS),
             math.ceil((end + SPEECH_PAD_SECONDS) / FRAME_SECONDS),
         )
+        return left, right
+
+    def probability(self, start: float = 0, end: float | None = None) -> float:
+        left, right = self._frame_bounds(start, end)
         return max(self.probabilities[left:right], default=0.0)
+
+    def speech_duration(self, start: float = 0, end: float | None = None) -> float:
+        """Longest uninterrupted confident interval near a transcript segment."""
+        left, right = self._frame_bounds(start, end)
+        longest = 0.0
+        run_start = None
+        for index in range(left, right):
+            if self.probabilities[index] < CONFIDENT_SPEECH:
+                run_start = None
+                continue
+            if run_start is None:
+                run_start = index * FRAME_SECONDS
+            frame_end = min((index + 1) * FRAME_SECONDS, self.duration)
+            longest = max(longest, frame_end - run_start)
+        return longest
 
     @property
     def has_possible_speech(self) -> bool:
-        return self.probability() >= POSSIBLE_SPEECH
+        return self.speech_duration() >= MIN_SPEECH_SECONDS
 
 
 class SileroSpeechDetector:

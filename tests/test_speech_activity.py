@@ -7,9 +7,24 @@ from unittest.mock import Mock, patch
 from pydub import AudioSegment
 
 from src_py.impl.groq_whisper_transcriber import GroqWhisperTranscriber
-from src_py.impl.speech_activity import SileroSpeechDetector
+from src_py.impl.speech_activity import SileroSpeechDetector, SpeechActivity
 
 FIXTURES = Path(__file__).parents[1] / "benchmarks" / "vad_audio"
+
+
+class SpeechEvidenceTest(unittest.TestCase):
+    def test_minimum_speech_duration_and_threshold(self):
+        self.assertTrue(SpeechActivity(1, (0.5,) * 4).has_possible_speech)
+        self.assertFalse(SpeechActivity(1, (0.99,) * 3).has_possible_speech)
+        self.assertFalse(SpeechActivity(1, (0.49,) * 32).has_possible_speech)
+
+    def test_separate_noise_spikes_are_not_accumulated(self):
+        self.assertFalse(SpeechActivity(1, (0.9, 0.0) * 16).has_possible_speech)
+
+    def test_last_frame_padding_does_not_extend_short_audio(self):
+        activity = SpeechActivity(0.1, (0.99,) * 4)
+        self.assertAlmostEqual(activity.speech_duration(), 0.1)
+        self.assertFalse(activity.has_possible_speech)
 
 
 class SileroAudioTest(unittest.TestCase):
@@ -26,7 +41,7 @@ class SileroAudioTest(unittest.TestCase):
     def test_digital_silence_and_generated_environmental_noise_are_rejected(self):
         detector = SileroSpeechDetector()
         for filename in ("silence_short.ogg", "quiet_noise.ogg", "white_noise.ogg",
-                         "wind.ogg", "hum.ogg", "clicks.ogg"):
+                         "wind.ogg", "hum.ogg", "clicks.ogg", "esc10_clock_tick.ogg"):
             with self.subTest(filename=filename):
                 activity = detector.analyze(AudioSegment.from_file(FIXTURES / filename))
                 self.assertFalse(activity.has_possible_speech)
@@ -47,10 +62,11 @@ class SileroAudioTest(unittest.TestCase):
 
     def test_non_speech_is_not_encoded_or_sent(self):
         transcriber = GroqWhisperTranscriber("unused")
-        with patch.object(AudioSegment, "export") as export:
-            chunks = transcriber._prepare_audio_chunks(str(FIXTURES / "quiet_noise.ogg"), "audio/ogg")
-        self.assertEqual(chunks, [])
-        export.assert_not_called()
+        for filename in ("quiet_noise.ogg", "esc10_clock_tick.ogg"):
+            with self.subTest(filename=filename), patch.object(AudioSegment, "export") as export:
+                chunks = transcriber._prepare_audio_chunks(str(FIXTURES / filename), "audio/ogg")
+                self.assertEqual(chunks, [])
+                export.assert_not_called()
 
     def test_vad_failure_is_not_silence(self):
         transcriber = GroqWhisperTranscriber("unused")

@@ -108,5 +108,92 @@
   },
   "deployment": "not deployed",
   "validation_status": "all_test_cases_match_current_policy",
-  "word_error_scoring_note": "Raw benchmark edit distance counts numeral 5 versus spoken пять as a difference; acceptance comparison normalizes this formatting."
+  "word_error_scoring_note": "Raw benchmark edit distance counts numeral 5 versus spoken пять as a difference; acceptance comparison normalizes this formatting.",
+  "sustained_speech_fix": {
+    "checked_at": "2026-10-13T08:36:47.671131+00:00",
+    "filter_config": {
+      "confident_speech": 0.5,
+      "min_speech_seconds": 0.12,
+      "speech_pad_seconds": 0.3
+    },
+    "pre_fix_regressions": 16,
+    "tests": {
+      "macos_python_3_13": 65,
+      "production_image_linux_python_3_12": 55
+    },
+    "vad_fixture_validation": {
+      "total": 35,
+      "spoken": 21,
+      "spoken_passed": 21,
+      "non_speech": 14,
+      "non_speech_rejected": 14
+    },
+    "recorded_response_replay": {
+      "required_speech_cases": 13,
+      "required_speech_dropped_by_filter": 0,
+      "non_speech_cases": 14,
+      "non_speech_replies": 0
+    },
+    "fresh_synthetic_api_cases": [
+      {
+        "file": "esc10_clock_tick.ogg",
+        "expected": "",
+        "text": ""
+      },
+      {
+        "file": "silence_short.ogg",
+        "expected": "",
+        "text": ""
+      },
+      {
+        "file": "yes_quiet.ogg",
+        "expected": "Да.",
+        "text": "Да."
+      },
+      {
+        "file": "music_word_quiet.ogg",
+        "expected": "Музыка.",
+        "text": "Музыка."
+      },
+      {
+        "file": "short_a.ogg",
+        "expected": "А?",
+        "text": "А?"
+      },
+      {
+        "file": "short_a_quiet.ogg",
+        "expected": "А?",
+        "text": ""
+      }
+    ],
+    "quiet_clipped_vowel_note": "At -35dB the short А? passes VAD, but Groq emits Продолжение следует...; both old and new artifact policies suppress it. Normal А?, quiet Да. and quiet Музыка. are recognized.",
+    "deployment": {
+      "host": "root@89.167.82.154",
+      "path": "/root/apps/tg-userbot",
+      "release": "/root/apps/tg-userbot-releases/20261013-sustained-vad-01a13451",
+      "image": "sha256:a02368ee56dedaafbec613059393f5d9dbd172165bb6b7ae3d8b3cf8a5d99195",
+      "deployed_at": "2026-10-13T08:38:48.521249+00:00",
+      "services": [
+        "dmi4er4-userbot",
+        "taak-userbot",
+        "charndv-userbot"
+      ],
+      "verification": "All three running; exact source hashes match tested candidate; Silero 0.4.0, threshold 0.5 and minimum 0.12s; Groq enabled and startup complete; 0 restarts and 0 errors.",
+      "rollback_backup": "/root/apps/tg-userbot-releases/20261013-sustained-vad-01a13451/backup",
+      "rollback_image": "tg-userbot-sustained-vad-rollback:20261013-01a13451"
+    },
+    "candidate_image": "sha256:a02368ee56dedaafbec613059393f5d9dbd172165bb6b7ae3d8b3cf8a5d99195",
+    "source_sha256": {
+      "src_py/impl/groq_whisper_transcriber.py": "6d9c7381995d442092dd66f48bb9a04358bf25188a766d3001494d679cfc44c6",
+      "src_py/impl/speech_activity.py": "e858e540f59cef8928b97d754caeda23b1b49905b70d416eb519bb51b7bec3b9",
+      "src_py/impl/transcription_filter.py": "99ab8416dd777a9d04347279f513e85e4cad1ad6d9c7a33ef784f04c5784dd6a",
+      "tests/test_groq_whisper_transcriber.py": "43e4d36786aef9009284773a842df046cc89a9780d6a9cf40d8f72e1cb46fdcd",
+      "tests/test_speech_activity.py": "734ce3ce1ee0f51677b309d21c04465c57d36a921f234380055d86f3d2185f3d",
+      "tests/test_transcription_filter.py": "91e1a71ddb624ebd4b961c2c798efd2f6bdf5de2e44c1e6f1c392bf1e0afc497",
+      "benchmarks/generate_vad_audio.py": "7bf49a1c1374d080d0aad79c7a2251f280c32ce05475454f2b460607822cb474",
+      "benchmarks/compare_vad.py": "c00a04e2be9c6c1672407fd2a35f38e18562e0c283c2919d75521633d57a0d58",
+      "benchmarks/vad_audio/short_a.ogg": "60398515cafb4ad058bd45fe48cdf926cd1a2ec422e07eeac1cd66c337fdd8f4",
+      "benchmarks/vad_audio/short_a_quiet.ogg": "4d2b2be9c8656f76edec4e1b7092b20d40d99b66d15b217538014f14dd8abf6e"
+    }
+  }
 }

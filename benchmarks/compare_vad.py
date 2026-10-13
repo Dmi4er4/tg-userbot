@@ -20,7 +20,7 @@ from pydub import AudioSegment
 from benchmarks.legacy_filter import _strip_hallucinations
 from src_py.impl.groq_whisper_transcriber import GroqWhisperTranscriber, _split_audio
 from src_py.impl.speech_activity import (
-    CONFIDENT_SPEECH, POSSIBLE_SPEECH, SPEECH_PAD_SECONDS,
+    CONFIDENT_SPEECH, MIN_SPEECH_SECONDS, SPEECH_PAD_SECONDS,
     SileroSpeechDetector, SpeechActivity,
 )
 from src_py.impl.transcription_filter import filter_by_audio, filter_transcription
@@ -63,7 +63,7 @@ def summarize(cases):
 
 async def compare(args):
     root = Path(__file__).parent / "vad_audio"
-    config = dict(possible_speech=POSSIBLE_SPEECH, confident_speech=CONFIDENT_SPEECH,
+    config = dict(confident_speech=CONFIDENT_SPEECH, min_speech_seconds=MIN_SPEECH_SECONDS,
                   speech_pad_seconds=SPEECH_PAD_SECONDS, suppress_boilerplate=True)
     manifest = json.loads((root / "manifest.json").read_text())
     fixtures = {case["file"]: case for case in manifest}

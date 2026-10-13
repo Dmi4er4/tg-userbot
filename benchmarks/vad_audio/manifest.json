@@ -260,5 +260,19 @@
     "license": "https://creativecommons.org/licenses/by/3.0/",
     "attribution": "- [1-28135-A.ogg]: clip derived from Branding_kort.wav (http://www.freesound.org/people/HerbertBoland/sounds/28135/) by HerbertBoland [CC-BY]",
     "modification": "resampled to mono 16kHz and encoded as Opus"
+  },
+  {
+    "file": "short_a.ogg",
+    "category": "speech",
+    "expected": "А?",
+    "duration_seconds": 0.287,
+    "source": "macOS Milena TTS"
+  },
+  {
+    "file": "short_a_quiet.ogg",
+    "category": "quiet_speech",
+    "expected": "А?",
+    "duration_seconds": 0.287,
+    "source": "macOS Milena TTS"
   }
 ]

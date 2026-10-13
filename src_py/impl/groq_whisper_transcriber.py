@@ -151,8 +151,10 @@ class GroqWhisperTranscriber:
                 continue
             activity = self._speech_detector.analyze(chunk)
             if not activity.has_possible_speech:
-                logger.info("Skipped %.2fs chunk without speech (vad=%.3f)",
-                            len(chunk) / 1000, activity.probability())
+                logger.info(
+                    "Skipped %.2fs chunk without speech (vad=%.3f speech_duration=%.3f)",
+                    len(chunk) / 1000, activity.probability(), activity.speech_duration(),
+                )
                 continue
             buf = io.BytesIO()
             chunk.export(buf, format="mp3", bitrate="64k")

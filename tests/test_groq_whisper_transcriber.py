@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 from pydub import AudioSegment
@@ -187,17 +188,61 @@ class SilentAudioTest(unittest.IsolatedAsyncioTestCase):
 
 
 class AutoTranscriptionFilterTest(unittest.IsolatedAsyncioTestCase):
+    async def test_real_audio_determines_whether_to_send_a_reply(self) -> None:
+        fixtures = Path(__file__).parents[1] / "benchmarks" / "vad_audio"
+        for filename, text, expected in (
+            ("esc10_clock_tick.ogg", "а", False),
+            ("esc10_clock_tick.ogg", "Музыка", False),
+            ("short_a_quiet.ogg", "а", True),
+            ("music_word_quiet.ogg", "Музыка", True),
+        ):
+            with self.subTest(filename=filename, text=text):
+                transcriber = GroqWhisperTranscriber("unused-key")
+                transcriber._call_groq_api = AsyncMock(return_value=payload(text, no_speech=0))
+                with (
+                    patch(
+                        "src_py.application.use_cases.private_transcribe.is_voice_message",
+                        return_value=True,
+                    ),
+                    patch(
+                        "src_py.application.use_cases.transcription.save_voice_from_message",
+                        new_callable=AsyncMock,
+                        return_value=str(fixtures / filename),
+                    ),
+                    patch(
+                        "src_py.application.use_cases.private_transcribe.send_transcription_reply",
+                        new_callable=AsyncMock,
+                    ) as send_reply,
+                ):
+                    result = await private_transcribe_voice(
+                        Mock(), types.Message(id=17, peer_id=types.PeerUser(42)),
+                        transcriber=transcriber,
+                    )
+
+                self.assertIs(result, expected)
+                if expected:
+                    send_reply.assert_awaited_once()
+                    self.assertEqual(send_reply.await_args.args[2], text)
+                    transcriber._call_groq_api.assert_awaited_once()
+                else:
+                    send_reply.assert_not_awaited()
+                    transcriber._call_groq_api.assert_not_awaited()
+
     async def test_empty_api_transcripts_do_not_send_replies(self) -> None:
         for text in (
             "Субтитры добавил DimaTorzok",
             "Редактор субтитров М.Лосева Корректор А.Егорова",
             "[музыка] Спасибо за просмотр!!!",
             "...",
+            "а",
+            "Музыка",
         ):
             with self.subTest(text=text):
                 transcriber = GroqWhisperTranscriber("unused-key")
                 transcriber._prepare_audio_chunks = Mock(return_value=[AudioChunk(b"audio", SpeechActivity(1, (0.2,) * 32))])
-                session = FakeSession([FakeResponse(200, payload(text, no_speech=0.9, logprob=-2.0))])
+                # Groq reports zero no_speech_prob even for noise and may be
+                # confident about the text it invents.
+                session = FakeSession([FakeResponse(200, payload(text, no_speech=0.0, logprob=-0.2))])
                 with (
                     patch(
                         "src_py.application.use_cases.private_transcribe.is_voice_message",

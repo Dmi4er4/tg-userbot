@@ -17,7 +17,7 @@ def payload(*segments):
 class MetadataFilterTest(unittest.TestCase):
     def test_ordinary_words_and_short_answers_survive(self):
         activity = SpeechActivity(1, (0.8,) * 32)
-        for text in ("Спасибо!", "Музыка.", "Да.", "Нет.", "Стоп.", "Ага.", "Угу."):
+        for text in ("Спасибо!", "Музыка.", "а", "А?", "Да.", "Нет.", "Стоп.", "Ага.", "Угу."):
             with self.subTest(text=text):
                 self.assertEqual(filter_transcription(payload(segment(text)), activity), text)
 
@@ -48,23 +48,30 @@ class MetadataFilterTest(unittest.TestCase):
                                no_speech=0.0, logprob=-0.22316153))
         self.assertEqual(filter_transcription(data, activity), "")
 
+    def test_noise_spikes_cannot_validate_a_confident_hallucination(self):
+        for probabilities in (
+            (0.2,) * 32,
+            (0.0,) * 15 + (0.99,) + (0.0,) * 16,
+            (0.0,) * 14 + (0.6,) * 3 + (0.0,) * 15,
+            (0.0, 0.8) * 16,
+        ):
+            for text in ("а", "Музыка", "Выдуманный текст"):
+                with self.subTest(probabilities=probabilities, text=text):
+                    self.assertEqual(filter_transcription(
+                        payload(segment(text, no_speech=0, logprob=-0.1)),
+                        SpeechActivity(1, probabilities)), "")
+
     def test_strong_speech_survives_bad_decoder_confidence_and_repetition(self):
         data = payload(segment("Да, да, да, да!", no_speech=0.99, logprob=-2))
         data["segments"][0]["compression_ratio"] = 10
         self.assertEqual(filter_transcription(data, SpeechActivity(1, (0.8,) * 32)), "Да, да, да, да!")
 
-    def test_weak_speech_survives_when_decoder_recognizes_it(self):
-        self.assertEqual(filter_transcription(payload(segment("Нет.")),
-                         SpeechActivity(1, (0.2,) * 32)), "Нет.")
-
-    def test_both_metadata_signals_are_needed_to_reject_weak_speech(self):
+    def test_decoder_confidence_does_not_validate_weak_audio(self):
         activity = SpeechActivity(1, (0.2,) * 32)
-        for no_speech, logprob in ((0.99, -0.2), (0.01, -2)):
+        for no_speech, logprob in ((0, -0.2), (0.99, -0.2), (0.01, -2), (0.99, -2)):
             with self.subTest(no_speech=no_speech, logprob=logprob):
                 self.assertEqual(filter_transcription(payload(segment("Да.", no_speech=no_speech,
-                                 logprob=logprob)), activity), "Да.")
-        self.assertEqual(filter_transcription(payload(segment("Выдуманный текст", no_speech=0.99,
-                         logprob=-2)), activity), "")
+                                 logprob=logprob)), activity), "")
 
     def test_only_text_over_silence_is_removed_from_mixed_recording(self):
         activity = SpeechActivity(10, (0.8,) * 32 + (0.001,) * 281)
@@ -72,7 +79,7 @@ class MetadataFilterTest(unittest.TestCase):
         self.assertEqual(filter_transcription(data, activity), "Встречаемся завтра.")
 
     def test_boundary_padding_keeps_short_word(self):
-        activity = SpeechActivity(2, (0.0,) * 31 + (0.8,) + (0.0,) * 31)
+        activity = SpeechActivity(2, (0.0,) * 31 + (0.8,) * 4 + (0.0,) * 28)
         self.assertEqual(filter_transcription(payload(segment("Да.", 1.1, 1.2)), activity), "Да.")
 
     def test_out_of_range_timestamps_do_not_prove_silence(self):
